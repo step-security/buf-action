@@ -511,18 +511,25 @@ async function run(bufPath: string, args: string[]): Promise<Result> {
   if (core.isDebug()) {
     args = ["--debug", ...args];
   }
+  const bufToken = core.getInput("token") || getEnv("BUF_TOKEN");
+  const httpsUsername =
+    getEnv("BUF_INPUT_HTTPS_USERNAME") || core.getInput("github_actor");
+  const httpsPassword =
+    getEnv("BUF_INPUT_HTTPS_PASSWORD") || core.getInput("github_token");
+  // Mask sensitive values sourced from env vars so they are redacted in logs
+  // even when not passed via secrets.*.
+  if (bufToken) core.setSecret(bufToken);
+  if (httpsPassword) core.setSecret(httpsPassword);
   return exec
     .getExecOutput(bufPath, args, {
       ignoreReturnCode: true,
       env: {
         ...process.env,
         // See: https://buf.build/docs/bsr/authentication
-        BUF_TOKEN: core.getInput("token") || getEnv("BUF_TOKEN"),
+        BUF_TOKEN: bufToken,
         // See: https://buf.build/docs/reference/inputs#https
-        BUF_INPUT_HTTPS_USERNAME:
-          getEnv("BUF_INPUT_HTTPS_USERNAME") || core.getInput("github_actor"),
-        BUF_INPUT_HTTPS_PASSWORD:
-          getEnv("BUF_INPUT_HTTPS_PASSWORD") || core.getInput("github_token"),
+        BUF_INPUT_HTTPS_USERNAME: httpsUsername,
+        BUF_INPUT_HTTPS_PASSWORD: httpsPassword,
       },
     })
     .then((output) => ({
