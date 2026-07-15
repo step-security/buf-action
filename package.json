@@ -8,8 +8,7 @@
     "format": "prettier --write 'src/*.{json,js,jsx,ts,tsx,css}' --log-level error",
     "lint": "eslint --max-warnings 0 src",
     "lint:fix": "eslint --max-warnings 0 --fix src",
-    "build": "ncc build -o dist src/main.ts && ncc build -o dist/post src/post.ts",
-    "generate": "license-header --ignore 'dist/**'"
+    "build": "ncc build -o dist src/main.ts && ncc build -o dist/post src/post.ts"
   },
   "keywords": [
     "actions",
@@ -19,13 +18,7 @@
   ],
   "author": "step-security",
   "license": "Apache-2.0",
-  "licenseHeader": {
-    "licenseType": "apache",
-    "yearRange": "2024-2025",
-    "copyrightHolder": "step-security"
-  },
   "devDependencies": {
-    "@bufbuild/license-header": "^0.0.4",
     "@eslint/js": "^9.28.0",
     "@types/node": "^24.3.0",
     "@types/semver": "^7.7.0",

@@ -48,14 +48,6 @@ endif
 	$(SED_I) "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"$(VERSION)\"/g" package.json
 	npm prune
 
-.PHONY: generate
-generate: node_modules ## Regenerate licenses
-	npm run generate
-
-.PHONY: checkgenerate
-checkgenerate:
-	@# Used in CI to verify that `make generate` doesn't produce a diff.
-	test -z "$$(git status --porcelain | tee /dev/stderr)"
 
 node_modules: package-lock.json
 	npm ci
