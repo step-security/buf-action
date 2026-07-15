@@ -248,7 +248,7 @@ async function runWorkflow(
   const checks = await Promise.all([
     lint(bufPath, inputs),
     format(bufPath, inputs),
-    breaking(bufPath, inputs),
+    breaking(bufPath, inputs, moduleNames),
   ]);
   steps.lint = checks[0];
   steps.format = checks[1];
@@ -347,13 +347,23 @@ async function format(bufPath: string, inputs: Inputs): Promise<Result> {
 }
 
 // breaking runs the "buf breaking" step.
-async function breaking(bufPath: string, inputs: Inputs): Promise<Result> {
+async function breaking(
+  bufPath: string,
+  inputs: Inputs,
+  moduleNames: ModuleName[],
+): Promise<Result> {
   if (!inputs.breaking) {
     core.debug("Skipping breaking");
     return skip();
   }
   const args = ["breaking", "--error-format", "github-actions"];
   if (inputs.breaking_against_registry) {
+    if (moduleNames.length == 0) {
+      core.debug(
+        "Skipping breaking against registry, no named modules detected",
+      );
+      return skip();
+    }
     args.push("--against-registry");
   } else {
     args.push("--against", inputs.breaking_against);

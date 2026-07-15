@@ -62,17 +62,6 @@ jobs:
         with:
           setup_only: true
       - run: buf --version | Select-String -Pattern $env:BUF_VERSION -CaseSensitive -SimpleMatch
-  test-setup-self-hosted:
-    needs: test-setup
-    # Disable this job, only for testing.
-    if: false
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./
-        with:
-          setup_only: true
-      - run: buf --version | grep $BUF_VERSION
   test-version-checksum:
     runs-on: ubuntu-latest
     needs: build
