@@ -5,7 +5,6 @@
 # buf-action
 
 [![ci](https://github.com/step-security/buf-action/actions/workflows/ci.yaml/badge.svg?branch=main)][ci]
-[![slack](https://img.shields.io/badge/slack-buf-%23e01563)][slack]
 
 This GitHub action makes it easy to run [`buf`][buf] within a workflow to check for
 [build](https://buf.build/docs/reference/cli/buf/build),
@@ -91,4 +90,3 @@ Offered under the [Apache 2 license][license].
 [buf-push]: https://github.com/marketplace/actions/buf-push
 [ci]: https://github.com/step-security/buf-action/actions/workflows/ci.yaml
 [license]: https://github.com/step-security/buf-action/blob/main/LICENSE
-[slack]: https://buf.build/links/slack
