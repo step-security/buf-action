@@ -41,7 +41,7 @@
     "@connectrpc/connect-web": "^2.0.1",
     "@octokit/webhooks-types": "^7.6.1",
     "axios": "^1.18.1",
-    "parse-diff": "^0.11.1",
+    "parse-diff": "^0.12.0",
     "semver": "^7.7.2"
   }
 }
