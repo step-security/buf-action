@@ -62862,6 +62862,7 @@ const LabelService = /*@__PURE__*/
 
 // EXTERNAL MODULE: ./node_modules/parse-diff/index.js
 var parse_diff = __nccwpck_require__(2673);
+var parse_diff_default = /*#__PURE__*/__nccwpck_require__.n(parse_diff);
 ;// CONCATENATED MODULE: ./src/inputs.ts
 // Copyright 2024-2025 Buf Technologies, Inc.
 // Copyright 2026 StepSecurity
@@ -66817,7 +66818,7 @@ async function downloadBuf(version, githubToken) {
         return await downloadTool(downloadURL, undefined, auth);
     }
     catch (error) {
-        throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`);
+        throw new Error(`Failed to download buf version ${version} from "${downloadURL}": ${error}`, { cause: error });
     }
 }
 // assertBufForInputs checks the buf binary is valid for the inputs provided.
@@ -67241,7 +67242,7 @@ async function format(bufPath, inputs) {
     const result = await run(bufPath, args);
     if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
         // If the format step fails, parse the diff and write github annotations.
-        const diff = parse_diff(result.stdout);
+        const diff = parse_diff_default()(result.stdout);
         result.stdout = ""; // Clear the stdout to count the number of changes.
         for (const file of diff) {
             result.stdout += `::error file=${file.to}::Format diff -${file.deletions}/+${file.additions}.\n`;
