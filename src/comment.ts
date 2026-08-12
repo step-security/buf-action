@@ -15,8 +15,9 @@
 
 import * as core from "@actions/core";
 import { context } from "@actions/github";
-import { Context } from "@actions/github/lib/context";
 import { GitHub } from "@actions/github/lib/utils";
+
+type Context = typeof context;
 
 // oldCommentTag is the previous tag used to identify the comment. This is
 // temporary and will be removed in a future release.
@@ -48,7 +49,7 @@ export async function findCommentOnPR(
   });
   const tag = commentTag();
   const previousComment = comments.find(
-    (comment) =>
+    (comment: { body?: string | null }) =>
       // TODO: Remove the old comment tag check in a future release.
       comment.body?.includes(tag) || comment.body?.includes(oldCommentTag),
   );
