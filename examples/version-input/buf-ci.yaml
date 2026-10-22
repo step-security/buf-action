@@ -12,5 +12,5 @@ jobs:
       - uses: step-security/buf-action@v1
         with:
           setup_only: true
-          version: 1.50.1
+          version: 1.73.0
       - run: buf version
