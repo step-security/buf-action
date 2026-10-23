@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: bufbuild/buf-action@v1
+      - uses: step-security/buf-action@v1
         with:
           # The bot user to authenticate as.
           bot_username: my-bot-user
