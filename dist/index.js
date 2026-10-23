@@ -3321,6 +3321,15 @@ RedirectableRequest.prototype._sanitizeOptions = function (options) {
   if (!options.headers) {
     options.headers = {};
   }
+  // Convert [header1, value1, header2, value2, …] to object
+  else if (Array.isArray(options.headers)) {
+    var headerList = options.headers;
+    options.headers = {};
+    for (var i = 0; i < headerList.length; i += 2) {
+      options.headers[headerList[i]] = headerList[i + 1];
+    }
+  }
+  // Ensure sensitive headers are always present
   if (!isArray(options.sensitiveHeaders)) {
     options.sensitiveHeaders = [];
   }
@@ -3720,7 +3729,7 @@ function isURL(value) {
 }
 
 function escapeRegex(regex) {
-  return regex.replace(/[\]\\/()*+?.$]/g, "\\$&");
+  return regex.replace(/[[\]\\/()*+?.^$|]/g, "\\$&");
 }
 
 // Exports
@@ -40022,7 +40031,7 @@ var external_url_ = __nccwpck_require__(7016);
 
 
 
-/* harmony default export */ const main_URLSearchParams = (external_url_.URLSearchParams);
+/* harmony default export */ const classes_URLSearchParams = (external_url_.URLSearchParams);
 
 ;// CONCATENATED MODULE: ./node_modules/axios/lib/platform/node/index.js
 
@@ -40054,7 +40063,7 @@ const generateString = (size = 16, alphabet = ALPHABET.ALPHA_DIGIT) => {
 /* harmony default export */ const node = ({
   isNode: true,
   classes: {
-    URLSearchParams: main_URLSearchParams,
+    URLSearchParams: classes_URLSearchParams,
     FormData: classes_FormData,
     Blob: (typeof Blob !== 'undefined' && Blob) || null,
   },
@@ -42811,7 +42820,7 @@ const http2Transport = {
 };
 
 /*eslint consistent-return:0*/
-/* harmony default export */ const adapters_http = (isHttpAdapterSupported &&
+/* harmony default export */ const http = (isHttpAdapterSupported &&
   function httpAdapter(config) {
     return wrapAsync(async function dispatchHttpRequest(resolve, reject, onDone) {
       // Read config pollution-safely: own properties and members inherited from
@@ -45257,7 +45266,7 @@ const adapter = getFetch();
  * @type {Object<string, Function|Object>}
  */
 const knownAdapters = {
-  http: adapters_http,
+  http: http,
   xhr: xhr,
   fetch: {
     get: getFetch,
@@ -46542,7 +46551,7 @@ class DecodedURL extends URL {
 }
 //# sourceMappingURL=proxy.js.map
 // EXTERNAL MODULE: ./node_modules/tunnel/index.js
-var node_modules_tunnel = __nccwpck_require__(770);
+var tunnel = __nccwpck_require__(770);
 // EXTERNAL MODULE: ./node_modules/undici/index.js
 var undici = __nccwpck_require__(6752);
 ;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
@@ -46620,7 +46629,7 @@ const HttpResponseRetryCodes = [
     HttpCodes.ServiceUnavailable,
     HttpCodes.GatewayTimeout
 ];
-const RetryableHttpVerbs = (/* unused pure expression or super */ null && (['OPTIONS', 'GET', 'DELETE', 'HEAD']));
+const RetryableHttpVerbs = ['OPTIONS', 'GET', 'DELETE', 'HEAD'];
 const ExponentialBackoffCeiling = 10;
 const ExponentialBackoffTimeSlice = 5;
 class HttpClientError extends Error {
@@ -46666,7 +46675,7 @@ function lib_isHttps(requestUrl) {
     const parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
-class lib_HttpClient {
+class HttpClient {
     constructor(userAgent, handlers, requestOptions) {
         this._ignoreSslError = false;
         this._allowRedirects = true;
@@ -46969,7 +46978,7 @@ class lib_HttpClient {
     }
     getAgentDispatcher(serverUrl) {
         const parsedUrl = new URL(serverUrl);
-        const proxyUrl = pm.getProxyUrl(parsedUrl);
+        const proxyUrl = getProxyUrl(parsedUrl);
         const useProxy = proxyUrl && proxyUrl.hostname;
         if (!useProxy) {
             return;
@@ -46980,7 +46989,7 @@ class lib_HttpClient {
         const info = {};
         info.parsedUrl = requestUrl;
         const usingSsl = info.parsedUrl.protocol === 'https:';
-        info.httpModule = usingSsl ? https : http;
+        info.httpModule = usingSsl ? external_https_namespaceObject : external_http_namespaceObject;
         const defaultPort = usingSsl ? 443 : 80;
         info.options = {};
         info.options.host = info.parsedUrl.hostname;
@@ -47079,7 +47088,7 @@ class lib_HttpClient {
     }
     _getAgent(parsedUrl) {
         let agent;
-        const proxyUrl = pm.getProxyUrl(parsedUrl);
+        const proxyUrl = getProxyUrl(parsedUrl);
         const useProxy = proxyUrl && proxyUrl.hostname;
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
@@ -47094,7 +47103,7 @@ class lib_HttpClient {
         const usingSsl = parsedUrl.protocol === 'https:';
         let maxSockets = 100;
         if (this.requestOptions) {
-            maxSockets = this.requestOptions.maxSockets || http.globalAgent.maxSockets;
+            maxSockets = this.requestOptions.maxSockets || external_http_.globalAgent.maxSockets;
         }
         // This is `useProxy` again, but we need to check `proxyURl` directly for TypeScripts's flow analysis.
         if (proxyUrl && proxyUrl.hostname) {
@@ -47119,7 +47128,7 @@ class lib_HttpClient {
         // if tunneling agent isn't assigned create a new agent
         if (!agent) {
             const options = { keepAlive: this._keepAlive, maxSockets };
-            agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
+            agent = usingSsl ? new external_https_.Agent(options) : new external_http_.Agent(options);
             this._agent = agent;
         }
         if (usingSsl && this._ignoreSslError) {
@@ -47142,7 +47151,7 @@ class lib_HttpClient {
             return proxyAgent;
         }
         const usingSsl = parsedUrl.protocol === 'https:';
-        proxyAgent = new ProxyAgent(Object.assign({ uri: proxyUrl.href, pipelining: !this._keepAlive ? 0 : 1 }, ((proxyUrl.username || proxyUrl.password) && {
+        proxyAgent = new undici.ProxyAgent(Object.assign({ uri: proxyUrl.href, pipelining: !this._keepAlive ? 0 : 1 }, ((proxyUrl.username || proxyUrl.password) && {
             token: `Basic ${Buffer.from(`${proxyUrl.username}:${proxyUrl.password}`).toString('base64')}`
         })));
         this._proxyAgentDispatcher = proxyAgent;
@@ -47273,7 +47282,7 @@ class BasicCredentialHandler {
         });
     }
 }
-class auth_BearerCredentialHandler {
+class BearerCredentialHandler {
     constructor(token) {
         this.token = token;
     }
@@ -47331,13 +47340,13 @@ var oidc_utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
-class oidc_utils_OidcClient {
+class OidcClient {
     static createHttpClient(allowRetry = true, maxRetry = 10) {
         const requestOptions = {
             allowRetries: allowRetry,
             maxRetries: maxRetry
         };
-        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(oidc_utils_OidcClient.getRequestToken())], requestOptions);
+        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
     }
     static getRequestToken() {
         const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
@@ -47356,7 +47365,7 @@ class oidc_utils_OidcClient {
     static getCall(id_token_url) {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             var _a;
-            const httpclient = oidc_utils_OidcClient.createHttpClient();
+            const httpclient = OidcClient.createHttpClient();
             const res = yield httpclient
                 .getJson(id_token_url)
                 .catch(error => {
@@ -47375,13 +47384,13 @@ class oidc_utils_OidcClient {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             try {
                 // New ID Token is requested from action service
-                let id_token_url = oidc_utils_OidcClient.getIDTokenUrl();
+                let id_token_url = OidcClient.getIDTokenUrl();
                 if (audience) {
                     const encodedAudience = encodeURIComponent(audience);
                     id_token_url = `${id_token_url}&audience=${encodedAudience}`;
                 }
-                debug(`ID token url is ${id_token_url}`);
-                const id_token = yield oidc_utils_OidcClient.getCall(id_token_url);
+                core_debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
                 setSecret(id_token);
                 return id_token;
             }
@@ -48977,7 +48986,7 @@ function exportVariable(name, val) {
  * console.log(`Using token: ${apiToken}`); // Outputs: "Using token: ***"
  * ```
  */
-function core_setSecret(secret) {
+function setSecret(secret) {
     command_issueCommand('add-mask', {}, secret);
 }
 /**
@@ -53574,40 +53583,49 @@ var descriptors_ScalarType;
 /**
  * Read a 64 bit varint as two JS numbers.
  *
- * Returns tuple:
- * [0]: low bits
- * [1]: high bits
+ * Stores the low and high words on the reader.
  *
  * Copyright 2008 Google Inc.  All rights reserved.
  *
  * See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/buffer_decoder.js#L175
  */
 function varint64read() {
-    let lowBits = 0;
-    let highBits = 0;
+    const buf = this.buf;
+    let pos = this.pos;
+    let lo = 0;
+    let hi = 0;
     for (let shift = 0; shift < 28; shift += 7) {
-        let b = this.buf[this.pos++];
-        lowBits |= (b & 0x7f) << shift;
+        const b = buf[pos++];
+        lo |= (b & 0x7f) << shift;
         if ((b & 0x80) == 0) {
+            this.pos = pos;
             this.assertBounds();
-            return [lowBits, highBits];
+            this.varint64Lo = lo;
+            this.varint64Hi = hi;
+            return;
         }
     }
-    let middleByte = this.buf[this.pos++];
+    const middleByte = buf[pos++];
     // last four bits of the first 32 bit number
-    lowBits |= (middleByte & 0x0f) << 28;
+    lo |= (middleByte & 0x0f) << 28;
     // 3 upper bits are part of the next 32 bit number
-    highBits = (middleByte & 0x70) >> 4;
+    hi = (middleByte & 0x70) >> 4;
     if ((middleByte & 0x80) == 0) {
+        this.pos = pos;
         this.assertBounds();
-        return [lowBits, highBits];
+        this.varint64Lo = lo;
+        this.varint64Hi = hi;
+        return;
     }
     for (let shift = 3; shift <= 31; shift += 7) {
-        let b = this.buf[this.pos++];
-        highBits |= (b & 0x7f) << shift;
+        const b = buf[pos++];
+        hi |= (b & 0x7f) << shift;
         if ((b & 0x80) == 0) {
+            this.pos = pos;
             this.assertBounds();
-            return [lowBits, highBits];
+            this.varint64Lo = lo;
+            this.varint64Hi = hi;
+            return;
         }
     }
     throw new Error("invalid varint");
@@ -53795,6 +53813,10 @@ const decimalFrom1e7WithLeadingZeros = (digit1e7) => {
  * See https://github.com/protocolbuffers/protobuf/blob/1b18833f4f2a2f681f4e4a25cdf3b0a43115ec26/js/binary/encoder.js#L144
  */
 function varint32write(value, bytes) {
+    if (value >>> 0 < 0x80) {
+        bytes.push(value);
+        return;
+    }
     if (value >= 0) {
         // write value as varint 32
         while (value > 0x7f) {
@@ -53818,26 +53840,26 @@ function varint32write(value, bytes) {
  */
 function varint32read() {
     let b = this.buf[this.pos++];
-    let result = b & 0x7f;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
-        return result;
+        return b;
     }
+    let result = b & 0x7f;
     b = this.buf[this.pos++];
     result |= (b & 0x7f) << 7;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
         return result;
     }
     b = this.buf[this.pos++];
     result |= (b & 0x7f) << 14;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
         return result;
     }
     b = this.buf[this.pos++];
     result |= (b & 0x7f) << 21;
-    if ((b & 0x80) == 0) {
+    if ((b & 0x80) === 0) {
         this.assertBounds();
         return result;
     }
@@ -53846,10 +53868,9 @@ function varint32read() {
     result |= (b & 0x0f) << 28;
     for (let readBytes = 5; (b & 0x80) !== 0 && readBytes < 10; readBytes++)
         b = this.buf[this.pos++];
-    if ((b & 0x80) != 0)
+    if ((b & 0x80) !== 0)
         throw new Error("invalid varint");
     this.assertBounds();
-    // Result can have 32 bits, convert it to unsigned
     return result >>> 0;
 }
 
@@ -53881,6 +53902,7 @@ function makeInt64Support() {
         typeof dv.setBigInt64 === "function" &&
         typeof dv.setBigUint64 === "function" &&
         (!!globalThis.Deno ||
+            !!globalThis.Bun ||
             typeof process != "object" ||
             typeof process.env != "object" ||
             process.env.BUF_BIGINT_DISABLE !== "1");
@@ -54000,6 +54022,14 @@ function assertUInt64String(value) {
 
 /**
  * Returns true if both scalar values are equal.
+ *
+ * For float and double, values are compared following IEEE semantics: -0
+ * equals 0, and NaN does not equal NaN. This is value equality, not identity.
+ *
+ * It deliberately differs from isScalarZeroValue, which treats -0 as distinct
+ * from 0. A value can equal the zero value without being a zero value
+ * (scalarEquals(DOUBLE, -0, 0) is true while isScalarZeroValue(DOUBLE, -0) is
+ * false) so this function must not be used to derive implicit presence.
  */
 function scalarEquals(type, a, b) {
     if (a === b) {
@@ -54036,7 +54066,13 @@ function scalarEquals(type, a, b) {
     return false;
 }
 /**
- * Returns the zero value for the given scalar type.
+ * Returns the zero value for the given scalar type, the value a field of this
+ * type has when unset: 0 for numeric types, "" for strings, false for
+ * booleans, and an empty Uint8Array for bytes. For 64-bit integer types, the
+ * result is "0" when longAsString is true, otherwise 0n.
+ *
+ * This is the type's zero value, not a proto2 custom field default. For float
+ * and double it is +0; isScalarZeroValue treats only +0, not -0, as this value.
  */
 function scalarZeroValue(type, longAsString) {
     switch (type) {
@@ -54062,11 +54098,19 @@ function scalarZeroValue(type, longAsString) {
     }
 }
 /**
- * Returns true for a zero-value. For example, an integer has the zero-value `0`,
- * a boolean is `false`, a string is `""`, and bytes is an empty Uint8Array.
+ * Returns true if the value is the zero value for the given scalar type: `0`
+ * for numeric types, `false` for booleans, `""` for strings, and an empty
+ * Uint8Array for bytes.
  *
- * In proto3, zero-values are not written to the wire, unless the field is
- * optional or repeated.
+ * This is the implicit-presence default check. A singular field with implicit
+ * presence is treated as unset, and omitted from the wire, when its value is
+ * the zero value. With explicit presence, or in repeated and map fields,
+ * presence is structural and this function does not apply.
+ *
+ * Note that -0 is NOT a zero value for float and double: under implicit
+ * presence, +0 is omitted from the wire but -0 is written, following the
+ * proto3 specification. As a result this can disagree with scalarEquals, which
+ * compares by value and treats -0 as equal to 0.
  */
 function isScalarZeroValue(type, value) {
     switch (type) {
@@ -54076,8 +54120,13 @@ function isScalarZeroValue(type, value) {
             return value === "";
         case descriptors_ScalarType.BYTES:
             return value instanceof Uint8Array && !value.byteLength;
+        case descriptors_ScalarType.DOUBLE:
+        case descriptors_ScalarType.FLOAT:
+            // Object.is distinguishes -0 from 0.
+            return Object.is(value, 0);
         default:
-            return value == 0; // Loose comparison matches 0n, 0 and "0"
+            // Loose comparison matches 0n, 0 and "0".
+            return value == 0;
     }
 }
 
@@ -54096,7 +54145,7 @@ function isScalarZeroValue(type, value) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const IMPLICIT = 2;
 const unsafeLocal = Symbol.for("reflect unsafe local");
 /**
@@ -54183,6 +54232,35 @@ function unsafeSet(target, field, value) {
     else {
         target[field.localName] = value;
     }
+}
+/**
+ * Set a property, treating __proto__ as an own data property.
+ *
+ * @private
+ */
+function setOwn(obj, key, value) {
+    if (key === "__proto__") {
+        Object.defineProperty(obj, "__proto__", {
+            value,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+        });
+    }
+    else {
+        // Plain assignment is the engine's optimized fast path: defineProperty is
+        // several times slower and can deoptimize the object, so we reserve it for
+        // the only key that actually needs it.
+        obj[key] = value;
+    }
+}
+/**
+ * Get a property, disregarding inherited members.
+ *
+ * @private
+ */
+function getOwn(obj, key) {
+    return Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
 }
 /**
  * Resets the field, so that unsafeIsSet() will return false.
@@ -54321,19 +54399,42 @@ function isWrapperDesc(messageDesc) {
         f.name == "value" &&
         f.number == 1);
 }
+/**
+ * Returns true if the descriptor is a well-known type with a custom JSON
+ * representation per the protobuf JSON spec. Examples: Timestamp as an
+ * RFC 3339 string, Duration as "5s", wrappers as the unwrapped scalar.
+ *
+ * When packed inside `google.protobuf.Any`, these messages are serialized
+ * as `{"@type": ..., "value": <custom form>}`; all other messages embed
+ * their fields directly.
+ */
+function hasCustomJsonRepresentation(desc) {
+    switch (desc.typeName) {
+        case "google.protobuf.Any":
+        case "google.protobuf.Timestamp":
+        case "google.protobuf.Duration":
+        case "google.protobuf.FieldMask":
+        case "google.protobuf.Struct":
+        case "google.protobuf.Value":
+        case "google.protobuf.ListValue":
+            return true;
+        default:
+            return isWrapperDesc(desc);
+    }
+}
+const wrapperTypeNames = /*@__PURE__*/ new Set([
+    "google.protobuf.DoubleValue",
+    "google.protobuf.FloatValue",
+    "google.protobuf.Int64Value",
+    "google.protobuf.UInt64Value",
+    "google.protobuf.Int32Value",
+    "google.protobuf.UInt32Value",
+    "google.protobuf.BoolValue",
+    "google.protobuf.StringValue",
+    "google.protobuf.BytesValue",
+]);
 function isWrapperTypeName(name) {
-    return (name.startsWith("google.protobuf.") &&
-        [
-            "DoubleValue",
-            "FloatValue",
-            "Int64Value",
-            "UInt64Value",
-            "Int32Value",
-            "UInt32Value",
-            "BoolValue",
-            "StringValue",
-            "BytesValue",
-        ].includes(name.substring(16)));
+    return wrapperTypeNames.has(name);
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/create.js
@@ -54356,11 +54457,11 @@ function isWrapperTypeName(name) {
 
 
 
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name = $number;
 const EDITION_PROTO3 = 999;
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name = $number;
 const EDITION_PROTO2 = 998;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const create_IMPLICIT = 2;
 /**
  * Create a new message instance.
@@ -54372,181 +54473,231 @@ function create_create(schema, init) {
     if (isMessage(init, schema)) {
         return init;
     }
-    const message = createZeroMessage(schema);
-    if (init !== undefined) {
-        initMessage(schema, message, init);
-    }
-    return message;
+    return compiledCreate(schema)(init);
 }
+const compiledCreates = new WeakMap();
 /**
- * Sets field values from a MessageInitShape on a zero message.
- */
-function initMessage(messageDesc, message, init) {
-    for (const member of messageDesc.members) {
-        let value = init[member.localName];
-        if (value == null) {
-            // intentionally ignore undefined and null
-            continue;
-        }
-        let field;
-        if (member.kind == "oneof") {
-            const oneofField = unsafeOneofCase(init, member);
-            if (!oneofField) {
-                continue;
-            }
-            field = oneofField;
-            value = unsafeGet(init, oneofField);
+ * Return the compiled create function for a message, compiling it on first use. */
+function compiledCreate(desc) {
+    let compiled = compiledCreates.get(desc);
+    if (compiled === undefined) {
+        compiled = compileCreate(desc);
+        compiledCreates.set(desc, compiled);
+    }
+    return compiled;
+}
+/** Singular field: scalar, enum, or message. */
+const INIT_SINGULAR = 0;
+/** List field: a zero message has a fresh empty array. */
+const INIT_LIST = 1;
+/** Map field: a zero message has a fresh empty object. */
+const INIT_MAP = 2;
+/** Oneof group: the ADT is always stored, cases convert by case name. */
+const INIT_ONEOF = 3;
+/* Compile the create function for this message type. */
+function compileCreate(desc) {
+    const typeName = desc.typeName;
+    const { properties, prototype } = compileInitMessage(desc);
+    return (init) => {
+        let message;
+        if (prototype !== undefined) {
+            message = Object.create(prototype);
+            message.$typeName = typeName;
         }
         else {
-            field = member;
+            message = { $typeName: typeName };
         }
-        switch (field.fieldKind) {
-            case "message":
-                value = toMessage(field, value);
-                break;
-            case "scalar":
-                value = initScalar(field, value);
-                break;
-            case "list":
-                value = initList(field, value);
-                break;
-            case "map":
-                value = initMap(field, value);
-                break;
+        for (let i = 0; i < properties.length; i++) {
+            const property = properties[i];
+            const name = property.name;
+            const initValue = init === null || init === void 0 ? void 0 : init[name];
+            switch (property.kind) {
+                case INIT_SINGULAR:
+                    if (initValue != null) {
+                        message[name] =
+                            property.convert !== undefined
+                                ? property.convert(initValue)
+                                : initValue;
+                    }
+                    else if (property.constant !== undefined) {
+                        message[name] = property.constant;
+                    }
+                    break;
+                case INIT_LIST:
+                    message[name] =
+                        property.convert !== undefined && Array.isArray(initValue)
+                            ? initValue.map(property.convert)
+                            : (initValue !== null && initValue !== void 0 ? initValue : []);
+                    break;
+                case INIT_MAP:
+                    // Object.create(null) would be desirable for the fresh map, but is
+                    // unsupported by React:
+                    // https://react.dev/reference/react/use-server#serializable-parameters-and-return-values
+                    if (property.convert === undefined || !guard_isObject(initValue)) {
+                        message[name] = initValue !== null && initValue !== void 0 ? initValue : {};
+                    }
+                    else {
+                        const converted = {};
+                        const keys = Object.keys(initValue);
+                        for (let k = 0; k < keys.length; k++) {
+                            setOwn(converted, keys[k], property.convert(initValue[keys[k]]));
+                        }
+                        message[name] = converted;
+                    }
+                    break;
+                case INIT_ONEOF: {
+                    const oneofValue = initValue;
+                    if ((oneofValue === null || oneofValue === void 0 ? void 0 : oneofValue.case) != null) {
+                        const convert = property.convert.get(oneofValue.case);
+                        if (convert !== undefined) {
+                            message[name] = {
+                                case: oneofValue.case,
+                                value: convert(oneofValue.value),
+                            };
+                            break;
+                        }
+                    }
+                    message[name] = { case: undefined };
+                    break;
+                }
+            }
         }
-        unsafeSet(message, field, value);
-    }
-    return message;
+        return message;
+    };
 }
-function initScalar(field, value) {
-    if (field.scalar == descriptors_ScalarType.BYTES) {
-        return toU8Arr(value);
+/**
+ * Classify every member once, so that creating a message is a walk over a
+ * compact list instead of a walk over the descriptor.
+ */
+function compileInitMessage(desc) {
+    var _a, _b;
+    const properties = [];
+    const prototype = {};
+    const usePrototype = needsPrototypeChain(desc);
+    for (const member of desc.members) {
+        const name = member.localName;
+        if (member.kind == "oneof") {
+            properties.push({
+                name,
+                kind: INIT_ONEOF,
+                constant: undefined,
+                convert: compileConvertOneof(member),
+            });
+            continue;
+        }
+        switch (member.fieldKind) {
+            case "message": {
+                // Singular message fields are absent from a zero message.
+                properties.push({
+                    name,
+                    kind: INIT_SINGULAR,
+                    constant: undefined,
+                    convert: compileConvertMessage(member),
+                });
+                break;
+            }
+            case "list": {
+                properties.push({
+                    name,
+                    kind: INIT_LIST,
+                    constant: undefined,
+                    convert: member.listKind == "message"
+                        ? ((_a = compileConvertMessage(member)) !== null && _a !== void 0 ? _a : ((value) => value))
+                        : member.scalar == descriptors_ScalarType.BYTES
+                            ? toU8Arr
+                            : undefined,
+                });
+                break;
+            }
+            case "map": {
+                properties.push({
+                    name,
+                    kind: INIT_MAP,
+                    constant: undefined,
+                    convert: member.mapKind == "message"
+                        ? ((_b = compileConvertMessage(member)) !== null && _b !== void 0 ? _b : ((value) => value))
+                        : member.scalar == descriptors_ScalarType.BYTES
+                            ? toU8Arr
+                            : undefined,
+                });
+                break;
+            }
+            default: {
+                const zeroValue = createZeroValue(member);
+                properties.push({
+                    name,
+                    kind: INIT_SINGULAR,
+                    constant: member.presence == create_IMPLICIT ? zeroValue : undefined,
+                    convert: member.fieldKind == "scalar" && member.scalar == descriptors_ScalarType.BYTES
+                        ? toU8Arr
+                        : undefined,
+                });
+                if (usePrototype) {
+                    prototype[name] = zeroValue;
+                }
+                break;
+            }
+        }
     }
-    return value;
+    return {
+        properties,
+        prototype: usePrototype ? prototype : undefined,
+    };
 }
-function initMap(field, value) {
-    if (guard_isObject(value)) {
-        if (field.scalar == descriptors_ScalarType.BYTES) {
-            return convertObjectValues(value, toU8Arr);
+/**
+ * Compile the conversion of each case of a oneof group, keyed by case name.
+ */
+function compileConvertOneof(oneof) {
+    const converters = new Map();
+    for (const field of oneof.fields) {
+        let convert;
+        if (field.fieldKind == "message") {
+            convert = compileConvertMessage(field);
         }
-        if (field.mapKind == "message") {
-            return convertObjectValues(value, (val) => toMessage(field, val));
+        else if (field.fieldKind == "scalar" &&
+            field.scalar == descriptors_ScalarType.BYTES) {
+            convert = toU8Arr;
         }
+        converters.set(field.localName, convert !== null && convert !== void 0 ? convert : ((value) => value));
     }
-    return value;
+    return converters;
 }
-function initList(field, value) {
-    if (Array.isArray(value)) {
-        if (field.scalar == descriptors_ScalarType.BYTES) {
-            return value.map(toU8Arr);
-        }
-        if (field.listKind == "message") {
-            return value.map((item) => toMessage(field, item));
-        }
-    }
-    return value;
-}
-function toMessage(field, value) {
+/**
+ * Compile the conversion of an init value for a message field, a message
+ * list item, or a message map value. Returns undefined if values are used
+ * as-is.
+ */
+function compileConvertMessage(field) {
     if (field.fieldKind == "message" &&
         !field.oneof &&
         isWrapperDesc(field.message)) {
         // Types from google/protobuf/wrappers.proto are unwrapped when used in
         // a singular field that is not part of a oneof group.
-        return initScalar(field.message.fields[0], value);
+        return field.message.fields[0].scalar == descriptors_ScalarType.BYTES
+            ? toU8Arr
+            : undefined;
     }
-    if (guard_isObject(value)) {
-        if (field.message.typeName == "google.protobuf.Struct" &&
-            field.parent.typeName !== "google.protobuf.Value") {
-            // google.protobuf.Struct is represented with JsonObject when used in a
-            // field, except when used in google.protobuf.Value.
+    if (field.message.typeName == "google.protobuf.Struct" &&
+        field.parent.typeName !== "google.protobuf.Value") {
+        // google.protobuf.Struct is represented with JsonObject when used in a
+        // field, except when used in google.protobuf.Value.
+        return undefined;
+    }
+    const messageDesc = field.message;
+    // Resolved on first use, not here: the message type can be this very field's
+    // parent, whose create function is still being compiled.
+    let compiled;
+    return (value) => {
+        if (!guard_isObject(value) || isMessage(value, messageDesc)) {
             return value;
         }
-        if (!isMessage(value, field.message)) {
-            return create_create(field.message, value);
-        }
-    }
-    return value;
+        compiled !== null && compiled !== void 0 ? compiled : (compiled = compiledCreate(messageDesc));
+        return compiled(value);
+    };
 }
 // converts any ArrayLike<number> to Uint8Array if necessary.
 function toU8Arr(value) {
     return Array.isArray(value) ? new Uint8Array(value) : value;
-}
-function convertObjectValues(obj, fn) {
-    const ret = {};
-    for (const entry of Object.entries(obj)) {
-        ret[entry[0]] = fn(entry[1]);
-    }
-    return ret;
-}
-const tokenZeroMessageField = Symbol();
-const messagePrototypes = new WeakMap();
-/**
- * Create a zero message.
- */
-function createZeroMessage(desc) {
-    let msg;
-    if (!needsPrototypeChain(desc)) {
-        msg = {
-            $typeName: desc.typeName,
-        };
-        for (const member of desc.members) {
-            if (member.kind == "oneof" || member.presence == create_IMPLICIT) {
-                msg[member.localName] = createZeroField(member);
-            }
-        }
-    }
-    else {
-        // Support default values and track presence via the prototype chain
-        const cached = messagePrototypes.get(desc);
-        let prototype;
-        let members;
-        if (cached) {
-            ({ prototype, members } = cached);
-        }
-        else {
-            prototype = {};
-            members = new Set();
-            for (const member of desc.members) {
-                if (member.kind == "oneof") {
-                    // we can only put immutable values on the prototype,
-                    // oneof ADTs are mutable
-                    continue;
-                }
-                if (member.fieldKind != "scalar" && member.fieldKind != "enum") {
-                    // only scalar and enum values are immutable, map, list, and message
-                    // are not
-                    continue;
-                }
-                if (member.presence == create_IMPLICIT) {
-                    // implicit presence tracks field presence by zero values - e.g. 0, false, "", are unset, 1, true, "x" are set.
-                    // message, map, list fields are mutable, and also have IMPLICIT presence.
-                    continue;
-                }
-                members.add(member);
-                prototype[member.localName] = createZeroField(member);
-            }
-            messagePrototypes.set(desc, { prototype, members });
-        }
-        msg = Object.create(prototype);
-        msg.$typeName = desc.typeName;
-        for (const member of desc.members) {
-            if (members.has(member)) {
-                continue;
-            }
-            if (member.kind == "field") {
-                if (member.fieldKind == "message") {
-                    continue;
-                }
-                if (member.fieldKind == "scalar" || member.fieldKind == "enum") {
-                    if (member.presence != create_IMPLICIT) {
-                        continue;
-                    }
-                }
-            }
-            msg[member.localName] = createZeroField(member);
-        }
-    }
-    return msg;
 }
 /**
  * Do we need the prototype chain to track field presence?
@@ -54567,22 +54718,10 @@ function needsPrototypeChain(desc) {
     }
 }
 /**
- * Returns a zero value for oneof groups, and for every field kind except
- * messages. Scalar and enum fields can have default values.
+ * Returns the zero value for a scalar or enum field. Scalar and enum fields
+ * can have default values.
  */
-function createZeroField(field) {
-    if (field.kind == "oneof") {
-        return { case: undefined };
-    }
-    if (field.fieldKind == "list") {
-        return [];
-    }
-    if (field.fieldKind == "map") {
-        return {}; // Object.create(null) would be desirable here, but is unsupported by react https://react.dev/reference/react/use-server#serializable-parameters-and-return-values
-    }
-    if (field.fieldKind == "message") {
-        return tokenZeroMessageField;
-    }
+function createZeroValue(field) {
     const defaultValue = field.getDefaultValue();
     if (defaultValue !== undefined) {
         return field.fieldKind == "scalar" && field.longAsString
@@ -54613,14 +54752,14 @@ const errorNames = [
     "FieldListRangeError",
     "ForeignFieldError",
 ];
-class FieldError extends Error {
+class error_FieldError extends Error {
     constructor(fieldOrOneof, message, name = "FieldValueInvalidError") {
         super(message);
         this.name = name;
         this.field = () => fieldOrOneof;
     }
 }
-function error_isFieldError(arg) {
+function isFieldError(arg) {
     return (arg instanceof Error &&
         errorNames.includes(arg.name) &&
         "field" in arg &&
@@ -54641,29 +54780,55 @@ function error_isFieldError(arg) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-const symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
+let te;
 /**
  * Protobuf-ES requires the Text Encoding API to convert UTF-8 from and to
  * binary. This WHATWG API is widely available, but it is not part of the
- * ECMAScript standard. On runtimes where it is not available, use this
- * function to provide your own implementation.
+ * ECMAScript standard. This function used to be the way to supply an
+ * implementation on runtimes that do not provide one.
+ *
+ * It only configures the copy of the library it is imported from. To provide
+ * the encoding API for every copy of Protobuf-ES in an isolate, install
+ * `TextEncoder` (with the methods `encode` and optionally `encodeInto`) and
+ * `TextDecoder` (with the `fatal: true` constructor argument and the `decode`
+ * method) on `globalThis`.
+ *
+ * Providing `encodeUtf8Into` is optional for backwards compatibility. If it
+ * is omitted, we emulate it with a wrapper that calls `encodeUtf8`.
  *
  * Note that the Text Encoding API does not provide a way to validate UTF-8.
- * Our implementation falls back to use encodeURIComponent().
+ * Our implementation uses String.prototype.isWellFormed, and falls back
+ * to use encodeURIComponent().
+ *
+ * @deprecated Install `TextEncoder` and `TextDecoder` on `globalThis` instead.
  */
 function configureTextEncoding(textEncoding) {
-    globalThis[symbol] = textEncoding;
+    var _a;
+    te = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
 }
 function getTextEncoding() {
-    if (globalThis[symbol] == undefined) {
-        const te = new globalThis.TextEncoder();
-        const td = new globalThis.TextDecoder();
-        globalThis[symbol] = {
+    if (!te) {
+        const globals = globalThis;
+        if (!globals.TextEncoder || !globals.TextDecoder) {
+            throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
+        }
+        const textEncoder = new globals.TextEncoder();
+        const textDecoder = new globals.TextDecoder();
+        let textDecoderStrict;
+        const config = {
             encodeUtf8(text) {
-                return te.encode(text);
+                return textEncoder.encode(text);
             },
-            decodeUtf8(bytes) {
-                return td.decode(bytes);
+            decodeUtf8(bytes, strict) {
+                if (strict) {
+                    if (!textDecoderStrict) {
+                        textDecoderStrict = new globals.TextDecoder("utf-8", {
+                            fatal: true,
+                        });
+                    }
+                    return textDecoderStrict.decode(bytes);
+                }
+                return textDecoder.decode(bytes);
             },
             checkUtf8(text) {
                 try {
@@ -54675,8 +54840,33 @@ function getTextEncoding() {
                 }
             },
         };
+        // If encodeInto is available, use it. Otherwise, configureTextEncoding
+        // fills in a slower fallback that uses encodeUtf8.
+        if (textEncoder.encodeInto) {
+            config.encodeUtf8Into = textEncoder.encodeInto.bind(textEncoder);
+        }
+        // Native String.prototype.isWellFormed, if the runtime provides it.
+        const nativeStringIsWellFormed = String.prototype.isWellFormed;
+        if (nativeStringIsWellFormed) {
+            config.checkUtf8 = (text) => {
+                return nativeStringIsWellFormed.call(text);
+            };
+        }
+        configureTextEncoding(config);
     }
-    return globalThis[symbol];
+    return te;
+}
+/**
+ * Simplistic polyfill for encodeUtf8Into.
+ *
+ * @private
+ */
+function emulateEncodeInto(encodeUtf8) {
+    return (text, dest) => {
+        const bytes = encodeUtf8(text);
+        dest.set(bytes);
+        return { written: bytes.byteLength };
+    };
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
@@ -54745,7 +54935,7 @@ const FLOAT32_MAX = 3.4028234663852886e38;
 /**
  * Minimum value for a 32-bit floating point value (Protobuf FLOAT).
  */
-const FLOAT32_MIN = -3.4028234663852886e38;
+const FLOAT32_MIN = (/* unused pure expression or super */ null && (-3.4028234663852886e38));
 /**
  * Maximum value for an unsigned 32-bit integer (Protobuf UINT32, FIXED32).
  */
@@ -54759,34 +54949,55 @@ const INT32_MAX = 0x7fffffff;
  */
 const INT32_MIN = -0x80000000;
 class BinaryWriter {
-    constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
-        this.encodeUtf8 = encodeUtf8;
+    constructor(encodeUtf8) {
         /**
-         * Previous fork states.
+         * Previous fork positions (the write position at the time
+         * `fork()` was called).
          */
-        this.stack = [];
-        this.chunks = [];
-        this.buf = [];
+        this.stackPos = [];
+        this.encodeUtf8Into = encodeUtf8
+            ? emulateEncodeInto(encodeUtf8)
+            : getTextEncoding().encodeUtf8Into;
+        this.buffer = EMPTY_BUFFER;
+        this.viewCache = EMPTY_VIEW;
+        this.pos = 0;
+    }
+    ensureCapacity(size) {
+        const required = this.pos + size;
+        if (required > this.buffer.length) {
+            let newLen = this.buffer.length || INITIAL_SIZE;
+            while (newLen < required)
+                newLen *= 2;
+            const newBuf = new Uint8Array(newLen);
+            if (this.pos > 0)
+                newBuf.set(this.buffer);
+            this.buffer = newBuf;
+        }
+    }
+    /**
+     * The DataView over `buffer`, rebuilt only if the buffer has grown since it
+     * was last used.
+     */
+    view() {
+        const bytes = this.buffer;
+        const view = this.viewCache;
+        // Since ensureCapacity() only ever replaces the buffer with a strictly larger one,
+        // equal lengths mean the view is still current. This is faster than comparing
+        // buffers directly.
+        if (view.byteLength === bytes.byteLength)
+            return view;
+        const newView = new DataView(bytes.buffer);
+        this.viewCache = newView;
+        return newView;
     }
     /**
      * Return all bytes written and reset this writer.
      */
     finish() {
-        if (this.buf.length) {
-            this.chunks.push(new Uint8Array(this.buf)); // flush the buffer
-            this.buf = [];
-        }
-        let len = 0;
-        for (let i = 0; i < this.chunks.length; i++)
-            len += this.chunks[i].length;
-        let bytes = new Uint8Array(len);
-        let offset = 0;
-        for (let i = 0; i < this.chunks.length; i++) {
-            bytes.set(this.chunks[i], offset);
-            offset += this.chunks[i].length;
-        }
-        this.chunks = [];
-        return bytes;
+        const result = this.buffer.slice(0, this.pos);
+        this.pos = 0;
+        this.stackPos = [];
+        return result;
     }
     /**
      * Start a new fork for length-delimited data like a message
@@ -54795,9 +55006,11 @@ class BinaryWriter {
      * Must be joined later with `join()`.
      */
     fork() {
-        this.stack.push({ chunks: this.chunks, buf: this.buf });
-        this.chunks = [];
-        this.buf = [];
+        this.stackPos.push(this.pos);
+        // Reserve room for the length prefix. Payloads under 128 bytes, fairly
+        // common, will need no copy in join().
+        this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+        this.buffer[this.pos++] = 0;
         return this;
     }
     /**
@@ -54805,17 +55018,24 @@ class BinaryWriter {
      * return to the previous state.
      */
     join() {
-        // get chunk of fork
-        let chunk = this.finish();
-        // restore previous state
-        let prev = this.stack.pop();
-        if (!prev)
+        const forkPos = this.stackPos.pop();
+        if (forkPos === undefined)
             throw new Error("invalid state, fork stack empty");
-        this.chunks = prev.chunks;
-        this.buf = prev.buf;
-        // write length of chunk as varint
-        this.uint32(chunk.byteLength);
-        return this.raw(chunk);
+        // fork() presumed the payload would fit the prefix it reserved. If it
+        // doesn't, we need to shift the bytes we just wrote.
+        const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
+        const lenPrefixSize = varint32Size(len);
+        if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
+            // Widening pushes the payload past the end of the buffer, so grow first:
+            // copyWithin clamps to the buffer instead of throwing, so a short buffer
+            // would silently drop the tail of the payload.
+            this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
+            this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+        }
+        this.pos = forkPos;
+        this.uint32(len);
+        this.pos += len;
+        return this;
     }
     /**
      * Writes a tag (field number and wire type).
@@ -54831,11 +55051,9 @@ class BinaryWriter {
      * Write a chunk of raw bytes.
      */
     raw(chunk) {
-        if (this.buf.length) {
-            this.chunks.push(new Uint8Array(this.buf));
-            this.buf = [];
-        }
-        this.chunks.push(chunk);
+        this.ensureCapacity(chunk.length);
+        this.buffer.set(chunk, this.pos);
+        this.pos += chunk.length;
         return this;
     }
     /**
@@ -54843,12 +55061,18 @@ class BinaryWriter {
      */
     uint32(value) {
         assertUInt32(value);
-        // write value as varint 32, inlined for speed
-        while (value > 0x7f) {
-            this.buf.push((value & 0x7f) | 0x80);
-            value = value >>> 7;
+        // uint32 varints are at most 5 bytes; reserve once and avoid per-byte
+        // capacity checks.
+        this.ensureCapacity(5);
+        if (value < 0x80) {
+            this.buffer[this.pos++] = value;
+            return this;
         }
-        this.buf.push(value);
+        while (value > 0x7f) {
+            this.buffer[this.pos++] = (value & 0x7f) | 0x80;
+            value >>>= 7;
+        }
+        this.buffer[this.pos++] = value;
         return this;
     }
     /**
@@ -54856,101 +55080,158 @@ class BinaryWriter {
      */
     int32(value) {
         assertInt32(value);
-        varint32write(value, this.buf);
+        if (value >= 0) {
+            return this.uint32(value);
+        }
+        // Negative: sign-extend to 64 bits, encodes to 10 bytes.
+        this.ensureCapacity(10);
+        for (let i = 0; i < 9; i++) {
+            this.buffer[this.pos++] = (value & 0x7f) | 0x80;
+            value >>= 7;
+        }
+        this.buffer[this.pos++] = 1;
         return this;
     }
     /**
-     * Write a `bool` value, a variant.
+     * Write a `bool` value, a varint.
      */
     bool(value) {
-        this.buf.push(value ? 1 : 0);
+        this.ensureCapacity(1);
+        this.buffer[this.pos++] = value ? 1 : 0;
         return this;
     }
     /**
      * Write a `bytes` value, length-delimited arbitrary data.
      */
     bytes(value) {
-        this.uint32(value.byteLength); // write length of chunk as varint
+        this.uint32(value.byteLength);
         return this.raw(value);
     }
     /**
      * Write a `string` value, length-delimited data converted to UTF-8 text.
      */
     string(value) {
-        let chunk = this.encodeUtf8(value);
-        this.uint32(chunk.byteLength); // write length of chunk as varint
-        return this.raw(chunk);
+        // TextEncoder.encode() coerces its argument to string, but encodeInto()
+        // rejects non-strings.
+        if (typeof value !== "string") {
+            value = String(value);
+        }
+        const len = value.length;
+        // Fast path for ASCII.
+        if (len <= ASCII_MAX_LENGTH) {
+            this.ensureCapacity(len + 1);
+            const ascii = this.buffer;
+            let pos = this.pos;
+            ascii[pos++] = len;
+            let i = 0;
+            for (; i < len; i++) {
+                const code = value.charCodeAt(i);
+                if (code > 0x7f)
+                    break;
+                ascii[pos++] = code;
+            }
+            if (i == len) {
+                this.pos = pos;
+                return this;
+            }
+        }
+        // encodeUtf8Into needs the full-length buffer upfront. The length prefix
+        // can be upto 5 bytes, and a UTF-16 code unit takes at most 3 UTF-8 bytes.
+        this.ensureCapacity(len * 3 + 5);
+        // The length prefix goes first, but the byte length is only known after
+        // encoding. We guess the final varint size here (assuming most text is
+        // ASCII) and then encode.
+        const lenPrefixSizeGuess = varint32Size(len);
+        const buf = this.buffer;
+        const start = this.pos;
+        const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
+        // If our guess was incorrect, we need to shift the bytes we just wrote.
+        const lenPrefixSize = varint32Size(written);
+        if (lenPrefixSize != lenPrefixSizeGuess) {
+            buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
+        }
+        // Write the lenPrefix and advance the pos.
+        this.uint32(written);
+        this.pos += written;
+        return this;
     }
     /**
      * Write a `float` value, 32-bit floating point number.
      */
     float(value) {
         assertFloat32(value);
-        let chunk = new Uint8Array(4);
-        new DataView(chunk.buffer).setFloat32(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(4);
+        this.view().setFloat32(this.pos, value, true);
+        this.pos += 4;
+        return this;
     }
     /**
      * Write a `double` value, a 64-bit floating point number.
      */
     double(value) {
-        let chunk = new Uint8Array(8);
-        new DataView(chunk.buffer).setFloat64(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(8);
+        this.view().setFloat64(this.pos, value, true);
+        this.pos += 8;
+        return this;
     }
     /**
      * Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
      */
     fixed32(value) {
         assertUInt32(value);
-        let chunk = new Uint8Array(4);
-        new DataView(chunk.buffer).setUint32(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(4);
+        this.view().setUint32(this.pos, value, true);
+        this.pos += 4;
+        return this;
     }
     /**
      * Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
      */
     sfixed32(value) {
         assertInt32(value);
-        let chunk = new Uint8Array(4);
-        new DataView(chunk.buffer).setInt32(0, value, true);
-        return this.raw(chunk);
+        this.ensureCapacity(4);
+        this.view().setInt32(this.pos, value, true);
+        this.pos += 4;
+        return this;
     }
     /**
      * Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
      */
     sint32(value) {
         assertInt32(value);
-        // zigzag encode
-        value = ((value << 1) ^ (value >> 31)) >>> 0;
-        varint32write(value, this.buf);
-        return this;
+        // zigzag encode then emit as uint32 varint
+        return this.uint32(((value << 1) ^ (value >> 31)) >>> 0);
     }
     /**
-     * Write a `fixed64` value, a signed, fixed-length 64-bit integer.
+     * Write a `sfixed64` value, a signed, fixed-length 64-bit integer.
      */
     sfixed64(value) {
-        let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
-        view.setInt32(0, tc.lo, true);
-        view.setInt32(4, tc.hi, true);
-        return this.raw(chunk);
+        const tc = protoInt64.enc(value);
+        this.ensureCapacity(8);
+        const view = this.view();
+        view.setInt32(this.pos, tc.lo, true);
+        view.setInt32(this.pos + 4, tc.hi, true);
+        this.pos += 8;
+        return this;
     }
     /**
      * Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
      */
     fixed64(value) {
-        let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
-        view.setInt32(0, tc.lo, true);
-        view.setInt32(4, tc.hi, true);
-        return this.raw(chunk);
+        const tc = protoInt64.uEnc(value);
+        this.ensureCapacity(8);
+        const view = this.view();
+        view.setInt32(this.pos, tc.lo, true);
+        view.setInt32(this.pos + 4, tc.hi, true);
+        this.pos += 8;
+        return this;
     }
     /**
      * Write a `int64` value, a signed 64-bit varint.
      */
     int64(value) {
-        let tc = protoInt64.enc(value);
-        varint64write(tc.lo, tc.hi, this.buf);
-        return this;
+        const tc = protoInt64.enc(value);
+        return this.writeVarint64(tc.lo, tc.hi);
     }
     /**
      * Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
@@ -54959,21 +55240,102 @@ class BinaryWriter {
         const tc = protoInt64.enc(value), 
         // zigzag encode
         sign = tc.hi >> 31, lo = (tc.lo << 1) ^ sign, hi = ((tc.hi << 1) | (tc.lo >>> 31)) ^ sign;
-        varint64write(lo, hi, this.buf);
-        return this;
+        return this.writeVarint64(lo, hi);
     }
     /**
      * Write a `uint64` value, an unsigned 64-bit varint.
      */
     uint64(value) {
         const tc = protoInt64.uEnc(value);
-        varint64write(tc.lo, tc.hi, this.buf);
+        return this.writeVarint64(tc.lo, tc.hi);
+    }
+    /**
+     * Write a 64-bit varint directly into the buffer. Accepts the value as
+     * split low/high 32-bit words.
+     *
+     * Ported from varint64write() to avoid the intermediate number[] buffer.
+     * See https://github.com/protocolbuffers/protobuf/blob/8a71927d74a4ce34efe2d8769fda198f52d20d12/js/experimental/runtime/kernel/writer.js#L344
+     */
+    writeVarint64(lo, hi) {
+        // Worst case: 10 bytes.
+        this.ensureCapacity(10);
+        const buf = this.buffer;
+        let pos = this.pos;
+        for (let i = 0; i < 28; i = i + 7) {
+            const shift = lo >>> i;
+            const hasNext = !(shift >>> 7 == 0 && hi == 0);
+            buf[pos++] = (hasNext ? shift | 0x80 : shift) & 0xff;
+            if (!hasNext) {
+                this.pos = pos;
+                return this;
+            }
+        }
+        const splitBits = ((lo >>> 28) & 0x0f) | ((hi & 0x07) << 4);
+        const hasMoreBits = !(hi >> 3 == 0);
+        buf[pos++] = (hasMoreBits ? splitBits | 0x80 : splitBits) & 0xff;
+        if (!hasMoreBits) {
+            this.pos = pos;
+            return this;
+        }
+        for (let i = 3; i < 31; i = i + 7) {
+            const shift = hi >>> i;
+            const hasNext = !(shift >>> 7 == 0);
+            buf[pos++] = (hasNext ? shift | 0x80 : shift) & 0xff;
+            if (!hasNext) {
+                this.pos = pos;
+                return this;
+            }
+        }
+        buf[pos++] = (hi >>> 31) & 0x01;
+        this.pos = pos;
         return this;
     }
+}
+/**
+ * Capacity of the buffer allocated by the first write..
+ */
+const INITIAL_SIZE = 128;
+/**
+ * Bytes `fork()` reserves for the length prefix, betting that the payload will
+ * be under 128 bytes. `join()` fills them in, and widens them if the bet was
+ * wrong.
+ */
+const DEFAULT_LEN_PREFIX_SIZE = 1;
+/**
+ * Shared empty buffer used as the initial value before the first write.
+ * Avoids allocating and zeroing `INITIAL_SIZE` bytes per BinaryWriter when a
+ * writer is only used for a tiny message (or not used at all).
+ */
+const EMPTY_BUFFER = new Uint8Array(0);
+/**
+ * Shared empty view, paired with `EMPTY_BUFFER`. Never written to: any
+ * fixed-width write first grows the buffer, which replaces this view.
+ */
+const EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
+/**
+ * Longest string on the ASCII fast paths. Must stay below 0x80, so
+ * that the writer's length prefix always fits a single varint byte.
+ */
+const ASCII_MAX_LENGTH = 32;
+/**
+ * Number of bytes needed to encode `value` as an unsigned 32-bit varint.
+ */
+function varint32Size(value) {
+    if (value < 0x80)
+        return 1;
+    if (value < 0x4000)
+        return 2;
+    if (value < 0x200000)
+        return 3;
+    if (value < 0x10000000)
+        return 4;
+    return 5;
 }
 class binary_encoding_BinaryReader {
     constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
         this.decodeUtf8 = decodeUtf8;
+        this.varint64Lo = 0;
+        this.varint64Hi = 0;
         this.varint64 = varint64read; // dirty cast for `this`
         /**
          * Read a `uint32` field, an unsigned 32 bit varint.
@@ -54985,21 +55347,32 @@ class binary_encoding_BinaryReader {
         this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     }
     /**
-     * Reads a tag - field number and wire type.
+     * Reads a tag - field number and wire type. Tags are uint32 varints; values
+     * that do not fit in uint32 are rejected.
      */
     tag() {
-        let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
-        if (fieldNo <= 0 || wireType < 0 || wireType > 5)
+        const start = this.pos;
+        const tag = this.uint32();
+        const bytesRead = this.pos - start;
+        if (bytesRead > 5 || (bytesRead == 5 && this.buf[this.pos - 1] > 0x0f)) {
+            throw new Error("illegal tag: varint overflows uint32");
+        }
+        const fieldNo = tag >>> 3;
+        const wireType = tag & 7;
+        if (fieldNo <= 0 || wireType > 5) {
             throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+        }
         return [fieldNo, wireType];
     }
     /**
      * Skip one element and return the skipped data.
      *
      * When skipping StartGroup, provide the tags field number to check for
-     * matching field number in the EndGroup tag.
+     * matching field number in the EndGroup tag. Recursion into nested groups
+     * is guarded by the `recursionLimit` argument: When the limit is reached,
+     * this method throws.
      */
-    skip(wireType, fieldNo) {
+    skip(wireType, fieldNo, recursionLimit = 100) {
         let start = this.pos;
         switch (wireType) {
             case WireType.Varint:
@@ -55018,6 +55391,9 @@ class binary_encoding_BinaryReader {
                 this.pos += len;
                 break;
             case WireType.StartGroup:
+                if (recursionLimit <= 0) {
+                    throw new Error("maximum recursion depth reached");
+                }
                 for (;;) {
                     const [fn, wt] = this.tag();
                     if (wt === WireType.EndGroup) {
@@ -55026,7 +55402,7 @@ class binary_encoding_BinaryReader {
                         }
                         break;
                     }
-                    this.skip(wt, fn);
+                    this.skip(wt, fn, recursionLimit - 1);
                 }
                 break;
             default:
@@ -55060,19 +55436,23 @@ class binary_encoding_BinaryReader {
      * Read a `int64` field, a signed 64-bit varint.
      */
     int64() {
-        return protoInt64.dec(...this.varint64());
+        this.varint64();
+        return protoInt64.dec(this.varint64Lo, this.varint64Hi);
     }
     /**
      * Read a `uint64` field, an unsigned 64-bit varint.
      */
     uint64() {
-        return protoInt64.uDec(...this.varint64());
+        this.varint64();
+        return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
     }
     /**
      * Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
      */
     sint64() {
-        let [lo, hi] = this.varint64();
+        this.varint64();
+        let lo = this.varint64Lo;
+        let hi = this.varint64Hi;
         // decode zig zag
         let s = -(lo & 1);
         lo = ((lo >>> 1) | ((hi & 1) << 31)) ^ s;
@@ -55083,8 +55463,14 @@ class binary_encoding_BinaryReader {
      * Read a `bool` field, a variant.
      */
     bool() {
-        let [lo, hi] = this.varint64();
-        return lo !== 0 || hi !== 0;
+        // Fast path: most bools are 0x0 or 0x1.
+        const b = this.buf[this.pos];
+        if (b < 0x80) {
+            this.pos++;
+            return b !== 0;
+        }
+        this.varint64();
+        return this.varint64Lo !== 0 || this.varint64Hi !== 0;
     }
     /**
      * Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
@@ -55136,10 +55522,25 @@ class binary_encoding_BinaryReader {
         return this.buf.subarray(start, start + len);
     }
     /**
-     * Read a `string` field, length-delimited data converted to UTF-8 text.
+     * Read a `string` field, length-delimited data converted to UTF-8 text. If
+     * `strict` is true, throw on invalid UTF-8 instead of substituting U+FFFD.
      */
-    string() {
-        return this.decodeUtf8(this.bytes());
+    string(strict) {
+        const bytes = this.bytes();
+        const len = bytes.length;
+        // Fast path for ASCII.
+        if (len <= ASCII_MAX_LENGTH) {
+            const codes = new Array(len);
+            for (let i = 0; i < len; i++) {
+                const byte = bytes[i];
+                if (byte > 0x7f) {
+                    return this.decodeUtf8(bytes, strict);
+                }
+                codes[i] = byte;
+            }
+            return String.fromCharCode.apply(String, codes);
+        }
+        return this.decodeUtf8(bytes, strict);
     }
 }
 /**
@@ -55173,7 +55574,7 @@ function assertUInt32(arg) {
         throw new Error("invalid uint32: " + arg);
 }
 /**
- * Assert a valid protobuf float value as a number or string.
+ * Assert a valid protobuf float32 value as a number or string.
  */
 function assertFloat32(arg) {
     if (typeof arg == "string") {
@@ -55186,9 +55587,11 @@ function assertFloat32(arg) {
     else if (typeof arg != "number") {
         throw new Error("invalid float32: " + typeof arg);
     }
-    if (Number.isFinite(arg) &&
-        (arg > FLOAT32_MAX || arg < FLOAT32_MIN))
+    // float32 is represented with regular 64-bit numbers. A value too large for
+    // a float32 becomes infinity when rounded. NaN and infinity are valid values.
+    if (!Number.isFinite(Math.fround(arg)) && Number.isFinite(arg)) {
         throw new Error("invalid float32: " + arg);
+    }
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/reflect-check.js
@@ -55236,7 +55639,7 @@ function checkField(field, value) {
             reason = reasonSingular(field, value, check);
         }
     }
-    return new FieldError(field, reason);
+    return new error_FieldError(field, reason);
 }
 /**
  * Check whether the given list item is valid for the reflect API.
@@ -55244,7 +55647,7 @@ function checkField(field, value) {
 function checkListItem(field, index, value) {
     const check = checkSingular(field, value);
     if (check !== true) {
-        return new FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
+        return new error_FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
     }
     return undefined;
 }
@@ -55252,106 +55655,129 @@ function checkListItem(field, index, value) {
  * Check whether the given map key and value are valid for the reflect API.
  */
 function checkMapEntry(field, key, value) {
-    const checkKey = checkScalarValue(key, field.mapKey);
+    const checkKey = checkScalarValue(field.mapKey)(key);
     if (checkKey !== true) {
-        return new FieldError(field, `invalid map key: ${reasonSingular({ scalar: field.mapKey }, key, checkKey)}`);
+        return new error_FieldError(field, `invalid map key: ${reasonSingular({ scalar: field.mapKey }, key, checkKey)}`);
     }
     const checkVal = checkSingular(field, value);
     if (checkVal !== true) {
-        return new FieldError(field, `map entry ${formatVal(key)}: ${reasonSingular(field, value, checkVal)}`);
+        return new error_FieldError(field, `map entry ${formatVal(key)}: ${reasonSingular(field, value, checkVal)}`);
     }
     return undefined;
 }
 function checkSingular(field, value) {
     if (field.scalar !== undefined) {
-        return checkScalarValue(value, field.scalar);
+        return checkScalarValue(field.scalar)(value);
     }
     if (field.enum !== undefined) {
         if (field.enum.open) {
-            return Number.isInteger(value);
+            // Open enums accept unrecognized values, but enum values are always
+            // int32 (see https://protobuf.dev/programming-guides/proto3/#enum).
+            return checkScalarValue(descriptors_ScalarType.INT32)(value);
         }
         return field.enum.values.some((v) => v.number === value);
     }
     return isReflectMessage(value, field.message);
 }
-function checkScalarValue(value, scalar) {
+/**
+ * Return the check for values of the given scalar type.
+ *
+ * @private
+ */
+function checkScalarValue(scalar) {
     switch (scalar) {
         case descriptors_ScalarType.DOUBLE:
-            return typeof value == "number";
+            return (value) => typeof value == "number";
         case descriptors_ScalarType.FLOAT:
-            if (typeof value != "number") {
-                return false;
-            }
-            if (Number.isNaN(value) || !Number.isFinite(value)) {
+            return (value) => {
+                if (typeof value != "number") {
+                    return false;
+                }
+                // float32 is represented with regular 64-bit numbers. A value too large for
+                // a float32 becomes infinity when rounded. NaN and infinity are valid values.
+                if (!Number.isFinite(Math.fround(value)) && Number.isFinite(value)) {
+                    return `${value.toFixed()} out of range`;
+                }
                 return true;
-            }
-            if (value > FLOAT32_MAX || value < FLOAT32_MIN) {
-                return `${value.toFixed()} out of range`;
-            }
-            return true;
+            };
         case descriptors_ScalarType.INT32:
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
             // signed
-            if (typeof value !== "number" || !Number.isInteger(value)) {
-                return false;
-            }
-            if (value > INT32_MAX || value < INT32_MIN) {
-                return `${value.toFixed()} out of range`;
-            }
-            return true;
+            return (value) => {
+                if (typeof value !== "number" || !Number.isInteger(value)) {
+                    return false;
+                }
+                if (value > INT32_MAX || value < INT32_MIN) {
+                    return `${value.toFixed()} out of range`;
+                }
+                return true;
+            };
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.UINT32:
             // unsigned
-            if (typeof value !== "number" || !Number.isInteger(value)) {
-                return false;
-            }
-            if (value > UINT32_MAX || value < 0) {
-                return `${value.toFixed()} out of range`;
-            }
-            return true;
+            return (value) => {
+                if (typeof value !== "number" || !Number.isInteger(value)) {
+                    return false;
+                }
+                if (value > UINT32_MAX || value < 0) {
+                    return `${value.toFixed()} out of range`;
+                }
+                return true;
+            };
         case descriptors_ScalarType.BOOL:
-            return typeof value == "boolean";
+            return (value) => typeof value == "boolean";
         case descriptors_ScalarType.STRING:
-            if (typeof value != "string") {
-                return false;
-            }
-            return getTextEncoding().checkUtf8(value) || "invalid UTF8";
+            return (value) => {
+                if (typeof value != "string") {
+                    return false;
+                }
+                return getTextEncoding().checkUtf8(value) || "invalid UTF8";
+            };
         case descriptors_ScalarType.BYTES:
-            return value instanceof Uint8Array;
+            return (value) => value instanceof Uint8Array;
         case descriptors_ScalarType.INT64:
         case descriptors_ScalarType.SFIXED64:
         case descriptors_ScalarType.SINT64:
             // signed
-            if (typeof value == "bigint" ||
-                typeof value == "number" ||
-                (typeof value == "string" && value.length > 0)) {
-                try {
-                    protoInt64.parse(value);
-                    return true;
+            return (value) => {
+                if (typeof value == "bigint" ||
+                    typeof value == "number" ||
+                    (typeof value == "string" && value.length > 0)) {
+                    try {
+                        protoInt64.parse(value);
+                        return true;
+                    }
+                    catch (_) {
+                        return `${value} out of range`;
+                    }
                 }
-                catch (_) {
-                    return `${value} out of range`;
-                }
-            }
-            return false;
+                return false;
+            };
         case descriptors_ScalarType.FIXED64:
         case descriptors_ScalarType.UINT64:
             // unsigned
-            if (typeof value == "bigint" ||
-                typeof value == "number" ||
-                (typeof value == "string" && value.length > 0)) {
-                try {
-                    protoInt64.uParse(value);
-                    return true;
+            return (value) => {
+                if (typeof value == "bigint" ||
+                    typeof value == "number" ||
+                    (typeof value == "string" && value.length > 0)) {
+                    try {
+                        protoInt64.uParse(value);
+                        return true;
+                    }
+                    catch (_) {
+                        return `${value} out of range`;
+                    }
                 }
-                catch (_) {
-                    return `${value} out of range`;
-                }
-            }
-            return false;
+                return false;
+            };
     }
 }
+/**
+ * Format the reason why a value is invalid for a singular field.
+ *
+ * @private
+ */
 function reasonSingular(field, val, details) {
     details =
         typeof details == "string" ? `: ${details}` : `, got ${formatVal(val)}`;
@@ -55451,548 +55877,6 @@ function scalarTypeDescription(scalar) {
         case descriptors_ScalarType.SINT32:
             return "number (int32)";
     }
-}
-
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/reflect.js
-// Copyright 2021-2026 Buf Technologies, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-
-
-
-
-
-
-
-
-/**
- * Create a ReflectMessage.
- */
-function reflect_reflect(messageDesc, message, 
-/**
- * By default, field values are validated when setting them. For example,
- * a value for an uint32 field must be a ECMAScript Number >= 0.
- *
- * When field values are trusted, performance can be improved by disabling
- * checks.
- */
-check = true) {
-    return new ReflectMessageImpl(messageDesc, message, check);
-}
-const messageSortedFields = new WeakMap();
-class ReflectMessageImpl {
-    get sortedFields() {
-        const cached = messageSortedFields.get(this.desc);
-        if (cached) {
-            return cached;
-        }
-        const sortedFields = this.desc.fields
-            .concat()
-            .sort((a, b) => a.number - b.number);
-        messageSortedFields.set(this.desc, sortedFields);
-        return sortedFields;
-    }
-    constructor(messageDesc, message, check = true) {
-        this.lists = new Map();
-        this.maps = new Map();
-        this.check = check;
-        this.desc = messageDesc;
-        this.message = this[unsafeLocal] = message !== null && message !== void 0 ? message : create_create(messageDesc);
-        this.fields = messageDesc.fields;
-        this.oneofs = messageDesc.oneofs;
-        this.members = messageDesc.members;
-    }
-    findNumber(number) {
-        if (!this._fieldsByNumber) {
-            this._fieldsByNumber = new Map(this.desc.fields.map((f) => [f.number, f]));
-        }
-        return this._fieldsByNumber.get(number);
-    }
-    oneofCase(oneof) {
-        assertOwn(this.message, oneof);
-        return unsafeOneofCase(this.message, oneof);
-    }
-    isSet(field) {
-        assertOwn(this.message, field);
-        return unsafeIsSet(this.message, field);
-    }
-    clear(field) {
-        assertOwn(this.message, field);
-        unsafeClear(this.message, field);
-    }
-    get(field) {
-        assertOwn(this.message, field);
-        const value = unsafeGet(this.message, field);
-        switch (field.fieldKind) {
-            case "list":
-                // eslint-disable-next-line no-case-declarations
-                let list = this.lists.get(field);
-                if (!list || list[unsafeLocal] !== value) {
-                    this.lists.set(field, 
-                    // biome-ignore lint/suspicious/noAssignInExpressions: no
-                    (list = new ReflectListImpl(field, value, this.check)));
-                }
-                return list;
-            case "map":
-                let map = this.maps.get(field);
-                if (!map || map[unsafeLocal] !== value) {
-                    this.maps.set(field, 
-                    // biome-ignore lint/suspicious/noAssignInExpressions: no
-                    (map = new ReflectMapImpl(field, value, this.check)));
-                }
-                return map;
-            case "message":
-                return messageToReflect(field, value, this.check);
-            case "scalar":
-                return (value === undefined
-                    ? scalarZeroValue(field.scalar, false)
-                    : longToReflect(field, value));
-            case "enum":
-                return (value !== null && value !== void 0 ? value : field.enum.values[0].number);
-        }
-    }
-    set(field, value) {
-        assertOwn(this.message, field);
-        if (this.check) {
-            const err = checkField(field, value);
-            if (err) {
-                throw err;
-            }
-        }
-        let local;
-        if (field.fieldKind == "message") {
-            local = messageToLocal(field, value);
-        }
-        else if (isReflectMap(value) || isReflectList(value)) {
-            local = value[unsafeLocal];
-        }
-        else {
-            local = longToLocal(field, value);
-        }
-        unsafeSet(this.message, field, local);
-    }
-    getUnknown() {
-        return this.message.$unknown;
-    }
-    setUnknown(value) {
-        this.message.$unknown = value;
-    }
-}
-function assertOwn(owner, member) {
-    if (member.parent.typeName !== owner.$typeName) {
-        throw new FieldError(member, `cannot use ${member.toString()} with message ${owner.$typeName}`, "ForeignFieldError");
-    }
-}
-/**
- * Create a ReflectList.
- */
-function reflectList(field, unsafeInput, 
-/**
- * By default, field values are validated when setting them. For example,
- * a value for an uint32 field must be a ECMAScript Number >= 0.
- *
- * When field values are trusted, performance can be improved by disabling
- * checks.
- */
-check = true) {
-    return new ReflectListImpl(field, unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : [], check);
-}
-class ReflectListImpl {
-    field() {
-        return this._field;
-    }
-    get size() {
-        return this._arr.length;
-    }
-    constructor(field, unsafeInput, check) {
-        this._field = field;
-        this._arr = this[unsafeLocal] = unsafeInput;
-        this.check = check;
-    }
-    get(index) {
-        const item = this._arr[index];
-        return item === undefined
-            ? undefined
-            : listItemToReflect(this._field, item, this.check);
-    }
-    set(index, item) {
-        if (index < 0 || index >= this._arr.length) {
-            throw new FieldError(this._field, `list item #${index + 1}: out of range`);
-        }
-        if (this.check) {
-            const err = checkListItem(this._field, index, item);
-            if (err) {
-                throw err;
-            }
-        }
-        this._arr[index] = listItemToLocal(this._field, item);
-    }
-    add(item) {
-        if (this.check) {
-            const err = checkListItem(this._field, this._arr.length, item);
-            if (err) {
-                throw err;
-            }
-        }
-        this._arr.push(listItemToLocal(this._field, item));
-        return undefined;
-    }
-    clear() {
-        this._arr.splice(0, this._arr.length);
-    }
-    [Symbol.iterator]() {
-        return this.values();
-    }
-    keys() {
-        return this._arr.keys();
-    }
-    *values() {
-        for (const item of this._arr) {
-            yield listItemToReflect(this._field, item, this.check);
-        }
-    }
-    *entries() {
-        for (let i = 0; i < this._arr.length; i++) {
-            yield [i, listItemToReflect(this._field, this._arr[i], this.check)];
-        }
-    }
-}
-/**
- * Create a ReflectMap.
- */
-function reflectMap(field, unsafeInput, 
-/**
- * By default, field values are validated when setting them. For example,
- * a value for an uint32 field must be a ECMAScript Number >= 0.
- *
- * When field values are trusted, performance can be improved by disabling
- * checks.
- */
-check = true) {
-    return new ReflectMapImpl(field, unsafeInput, check);
-}
-class ReflectMapImpl {
-    constructor(field, unsafeInput, check = true) {
-        this.obj = this[unsafeLocal] = unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : {};
-        this.check = check;
-        this._field = field;
-    }
-    field() {
-        return this._field;
-    }
-    set(key, value) {
-        if (this.check) {
-            const err = checkMapEntry(this._field, key, value);
-            if (err) {
-                throw err;
-            }
-        }
-        this.obj[mapKeyToLocal(key)] = mapValueToLocal(this._field, value);
-        return this;
-    }
-    delete(key) {
-        const k = mapKeyToLocal(key);
-        const has = Object.prototype.hasOwnProperty.call(this.obj, k);
-        if (has) {
-            delete this.obj[k];
-        }
-        return has;
-    }
-    clear() {
-        for (const key of Object.keys(this.obj)) {
-            delete this.obj[key];
-        }
-    }
-    get(key) {
-        let val = this.obj[mapKeyToLocal(key)];
-        if (val !== undefined) {
-            val = mapValueToReflect(this._field, val, this.check);
-        }
-        return val;
-    }
-    has(key) {
-        return Object.prototype.hasOwnProperty.call(this.obj, mapKeyToLocal(key));
-    }
-    *keys() {
-        for (const objKey of Object.keys(this.obj)) {
-            yield mapKeyToReflect(objKey, this._field.mapKey);
-        }
-    }
-    *entries() {
-        for (const objEntry of Object.entries(this.obj)) {
-            yield [
-                mapKeyToReflect(objEntry[0], this._field.mapKey),
-                mapValueToReflect(this._field, objEntry[1], this.check),
-            ];
-        }
-    }
-    [Symbol.iterator]() {
-        return this.entries();
-    }
-    get size() {
-        return Object.keys(this.obj).length;
-    }
-    *values() {
-        for (const val of Object.values(this.obj)) {
-            yield mapValueToReflect(this._field, val, this.check);
-        }
-    }
-    forEach(callbackfn, thisArg) {
-        for (const mapEntry of this.entries()) {
-            callbackfn.call(thisArg, mapEntry[1], mapEntry[0], this);
-        }
-    }
-}
-function messageToLocal(field, value) {
-    if (!isReflectMessage(value)) {
-        return value;
-    }
-    if (isWrapper(value.message) &&
-        !field.oneof &&
-        field.fieldKind == "message") {
-        // Types from google/protobuf/wrappers.proto are unwrapped when used in
-        // a singular field that is not part of a oneof group.
-        return value.message.value;
-    }
-    if (value.desc.typeName == "google.protobuf.Struct" &&
-        field.parent.typeName != "google.protobuf.Value") {
-        // google.protobuf.Struct is represented with JsonObject when used in a
-        // field, except when used in google.protobuf.Value.
-        return wktStructToLocal(value.message);
-    }
-    return value.message;
-}
-function messageToReflect(field, value, check) {
-    if (value !== undefined) {
-        if (isWrapperDesc(field.message) &&
-            !field.oneof &&
-            field.fieldKind == "message") {
-            // Types from google/protobuf/wrappers.proto are unwrapped when used in
-            // a singular field that is not part of a oneof group.
-            value = {
-                $typeName: field.message.typeName,
-                value: longToReflect(field.message.fields[0], value),
-            };
-        }
-        else if (field.message.typeName == "google.protobuf.Struct" &&
-            field.parent.typeName != "google.protobuf.Value" &&
-            guard_isObject(value)) {
-            // google.protobuf.Struct is represented with JsonObject when used in a
-            // field, except when used in google.protobuf.Value.
-            value = wktStructToReflect(value);
-        }
-    }
-    return new ReflectMessageImpl(field.message, value, check);
-}
-function listItemToLocal(field, value) {
-    if (field.listKind == "message") {
-        return messageToLocal(field, value);
-    }
-    return longToLocal(field, value);
-}
-function listItemToReflect(field, value, check) {
-    if (field.listKind == "message") {
-        return messageToReflect(field, value, check);
-    }
-    return longToReflect(field, value);
-}
-function mapValueToLocal(field, value) {
-    if (field.mapKind == "message") {
-        return messageToLocal(field, value);
-    }
-    return longToLocal(field, value);
-}
-function mapValueToReflect(field, value, check) {
-    if (field.mapKind == "message") {
-        return messageToReflect(field, value, check);
-    }
-    return value;
-}
-function mapKeyToLocal(key) {
-    return typeof key == "string" || typeof key == "number" ? key : String(key);
-}
-/**
- * Converts a map key (any scalar value except float, double, or bytes) from its
- * representation in a message (string or number, the only possible object key
- * types) to the closest possible type in ECMAScript.
- */
-function mapKeyToReflect(key, type) {
-    switch (type) {
-        case descriptors_ScalarType.STRING:
-            return key;
-        case descriptors_ScalarType.INT32:
-        case descriptors_ScalarType.FIXED32:
-        case descriptors_ScalarType.UINT32:
-        case descriptors_ScalarType.SFIXED32:
-        case descriptors_ScalarType.SINT32: {
-            const n = Number.parseInt(key);
-            if (Number.isFinite(n)) {
-                return n;
-            }
-            break;
-        }
-        case descriptors_ScalarType.BOOL:
-            switch (key) {
-                case "true":
-                    return true;
-                case "false":
-                    return false;
-            }
-            break;
-        case descriptors_ScalarType.UINT64:
-        case descriptors_ScalarType.FIXED64:
-            try {
-                return protoInt64.uParse(key);
-            }
-            catch (_a) {
-                //
-            }
-            break;
-        default:
-            // INT64, SFIXED64, SINT64
-            try {
-                return protoInt64.parse(key);
-            }
-            catch (_b) {
-                //
-            }
-            break;
-    }
-    return key;
-}
-function longToReflect(field, value) {
-    switch (field.scalar) {
-        case descriptors_ScalarType.INT64:
-        case descriptors_ScalarType.SFIXED64:
-        case descriptors_ScalarType.SINT64:
-            if ("longAsString" in field &&
-                field.longAsString &&
-                typeof value == "string") {
-                value = protoInt64.parse(value);
-            }
-            break;
-        case descriptors_ScalarType.FIXED64:
-        case descriptors_ScalarType.UINT64:
-            if ("longAsString" in field &&
-                field.longAsString &&
-                typeof value == "string") {
-                value = protoInt64.uParse(value);
-            }
-            break;
-    }
-    return value;
-}
-function longToLocal(field, value) {
-    switch (field.scalar) {
-        case descriptors_ScalarType.INT64:
-        case descriptors_ScalarType.SFIXED64:
-        case descriptors_ScalarType.SINT64:
-            if ("longAsString" in field && field.longAsString) {
-                value = String(value);
-            }
-            else if (typeof value == "string" || typeof value == "number") {
-                value = protoInt64.parse(value);
-            }
-            break;
-        case descriptors_ScalarType.FIXED64:
-        case descriptors_ScalarType.UINT64:
-            if ("longAsString" in field && field.longAsString) {
-                value = String(value);
-            }
-            else if (typeof value == "string" || typeof value == "number") {
-                value = protoInt64.uParse(value);
-            }
-            break;
-    }
-    return value;
-}
-function wktStructToReflect(json) {
-    const struct = {
-        $typeName: "google.protobuf.Struct",
-        fields: {},
-    };
-    if (guard_isObject(json)) {
-        for (const [k, v] of Object.entries(json)) {
-            struct.fields[k] = wktValueToReflect(v);
-        }
-    }
-    return struct;
-}
-function wktStructToLocal(val) {
-    const json = {};
-    for (const [k, v] of Object.entries(val.fields)) {
-        json[k] = wktValueToLocal(v);
-    }
-    return json;
-}
-function wktValueToLocal(val) {
-    switch (val.kind.case) {
-        case "structValue":
-            return wktStructToLocal(val.kind.value);
-        case "listValue":
-            return val.kind.value.values.map(wktValueToLocal);
-        case "nullValue":
-        case undefined:
-            return null;
-        default:
-            return val.kind.value;
-    }
-}
-function wktValueToReflect(json) {
-    const value = {
-        $typeName: "google.protobuf.Value",
-        kind: { case: undefined },
-    };
-    switch (typeof json) {
-        case "number":
-            value.kind = { case: "numberValue", value: json };
-            break;
-        case "string":
-            value.kind = { case: "stringValue", value: json };
-            break;
-        case "boolean":
-            value.kind = { case: "boolValue", value: json };
-            break;
-        case "object":
-            if (json === null) {
-                const nullValue = 0;
-                value.kind = { case: "nullValue", value: nullValue };
-            }
-            else if (Array.isArray(json)) {
-                const listValue = {
-                    $typeName: "google.protobuf.ListValue",
-                    values: [],
-                };
-                if (Array.isArray(json)) {
-                    for (const e of json) {
-                        listValue.values.push(wktValueToReflect(e));
-                    }
-                }
-                value.kind = {
-                    case: "listValue",
-                    value: listValue,
-                };
-            }
-            else {
-                value.kind = {
-                    case: "structValue",
-                    value: wktStructToReflect(json),
-                };
-            }
-            break;
-    }
-    return value;
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/names.js
@@ -56106,6 +55990,161 @@ function safeObjectProperty(name) {
     return reservedObjectProperties.has(name) ? name + "$" : name;
 }
 
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/message.js
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+// google.protobuf.NullValue.NULL_VALUE;
+const NULL_VALUE = 0;
+/**
+ * Return the conversions between the local representation of the field
+ * value and the message it represents.
+ *
+ * @private
+ */
+function localMessageMapper(field) {
+    // google.protobuf.Struct fields are stored as JsonObject.
+    if (usesJsonRepresentation(field)) {
+        return {
+            toMessage: (local) => wktStructToReflect(local),
+            toLocal: (message) => wktStructToLocal(message),
+        };
+    }
+    // Singular wrapper fields outside a oneof are unwrapped to the scalar value.
+    if (field.fieldKind == "message" &&
+        !field.oneof &&
+        isWrapperDesc(field.message)) {
+        const wrapperDesc = field.message;
+        const valueLocalName = wrapperDesc.fields[0].localName;
+        return {
+            toMessage: (local) => {
+                const message = create_create(wrapperDesc);
+                if (local !== undefined) {
+                    message[valueLocalName] = local;
+                }
+                return message;
+            },
+            toLocal: (message) => message[valueLocalName],
+        };
+    }
+    // For all other fields, the local value is the message itself.
+    const childDesc = field.message;
+    return {
+        toMessage: (local) => (local === undefined ? create_create(childDesc) : local),
+        toLocal: (message) => message,
+    };
+}
+/**
+ * Returns true if values of this field are stored as JsonValue instead of
+ * a message: google.protobuf.Struct is represented with JsonObject when
+ * used in a field, except when used in google.protobuf.Value.
+ */
+function usesJsonRepresentation(field) {
+    return (field.message.typeName == "google.protobuf.Struct" &&
+        field.parent.typeName != "google.protobuf.Value");
+}
+/**
+ * Convert the JsonValue representation of a google.protobuf.Struct to the
+ * message representation.
+ *
+ * @private
+ */
+function wktStructToReflect(json) {
+    const struct = {
+        $typeName: "google.protobuf.Struct",
+        fields: {},
+    };
+    if (guard_isObject(json)) {
+        for (const k of Object.keys(json)) {
+            setOwn(struct.fields, k, wktValueToReflect(json[k]));
+        }
+    }
+    return struct;
+}
+/**
+ * Convert a google.protobuf.Struct message to its JsonValue representation.
+ *
+ * @private
+ */
+function wktStructToLocal(val) {
+    const json = {};
+    for (const k of Object.keys(val.fields)) {
+        setOwn(json, k, wktValueToLocal(val.fields[k]));
+    }
+    return json;
+}
+function wktValueToLocal(val) {
+    switch (val.kind.case) {
+        case "structValue":
+            return wktStructToLocal(val.kind.value);
+        case "listValue":
+            return val.kind.value.values.map(wktValueToLocal);
+        case "nullValue":
+        case undefined:
+            return null;
+        default:
+            return val.kind.value;
+    }
+}
+function wktValueToReflect(json) {
+    const value = {
+        $typeName: "google.protobuf.Value",
+        kind: { case: undefined },
+    };
+    switch (typeof json) {
+        case "number":
+            value.kind = { case: "numberValue", value: json };
+            break;
+        case "string":
+            value.kind = { case: "stringValue", value: json };
+            break;
+        case "boolean":
+            value.kind = { case: "boolValue", value: json };
+            break;
+        case "object":
+            if (json === null) {
+                value.kind = { case: "nullValue", value: NULL_VALUE };
+            }
+            else if (Array.isArray(json)) {
+                const listValue = {
+                    $typeName: "google.protobuf.ListValue",
+                    values: [],
+                };
+                if (Array.isArray(json)) {
+                    for (const e of json) {
+                        listValue.values.push(wktValueToReflect(e));
+                    }
+                }
+                value.kind = {
+                    case: "listValue",
+                    value: listValue,
+                };
+            }
+            else {
+                value.kind = {
+                    case: "structValue",
+                    value: wktStructToReflect(json),
+                };
+            }
+            break;
+    }
+    return value;
+}
+
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wire/base64-encoding.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
@@ -56120,6 +56159,8 @@ function safeObjectProperty(name) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// Native Uint8Array.prototype.setFromBase64, if the runtime provides it.
+const nativeSetFromBase64 = Uint8Array.prototype.setFromBase64;
 /**
  * Decodes a base64 string to a byte array.
  *
@@ -56132,14 +56173,35 @@ function safeObjectProperty(name) {
  *   no padding
  */
 function base64_encoding_base64Decode(base64Str) {
+    const len = base64Str.length;
+    // Decoded size, assuming a well-formed string: three bytes per group of
+    // four characters, minus one byte for each padding character.
+    let size = len - ((len + 3) >> 2);
+    if ((len & 3) == 0 && base64Str[len - 1] == "=") {
+        size -= base64Str[len - 2] == "=" ? 2 : 1;
+    }
+    const bytes = new Uint8Array(size);
+    let written = -1;
+    if (nativeSetFromBase64) {
+        try {
+            const result = nativeSetFromBase64.call(bytes, base64Str);
+            if (result.read == len) {
+                written = result.written;
+            }
+        }
+        catch (_a) {
+            // The native decoder rejects base64url and inner padding, which we accept.
+        }
+    }
+    if (written < 0) {
+        written = setFromBase64(bytes, base64Str);
+    }
+    return written == size ? bytes : bytes.subarray(0, written);
+}
+/** Writes into `bytes` from index 0 and returns the number of bytes written. */
+function setFromBase64(bytes, base64Str) {
     const table = getDecodeTable();
-    // estimate byte size, not accounting for inner padding and whitespace
-    let es = (base64Str.length * 3) / 4;
-    if (base64Str[base64Str.length - 2] == "=")
-        es -= 2;
-    else if (base64Str[base64Str.length - 1] == "=")
-        es -= 1;
-    let bytes = new Uint8Array(es), bytePos = 0, // position in byte array
+    let bytePos = 0, // position in byte array
     groupPos = 0, // position in base64 group
     b, // current byte
     p = 0; // previous byte
@@ -56182,8 +56244,14 @@ function base64_encoding_base64Decode(base64Str) {
     }
     if (groupPos == 1)
         throw Error("invalid base64 string");
-    return bytes.subarray(0, bytePos);
+    return bytePos;
 }
+const nativeToBase64 = Uint8Array.prototype.toBase64;
+const toBase64OptionsMap = {
+    std: { alphabet: "base64", omitPadding: false },
+    std_raw: { alphabet: "base64", omitPadding: true },
+    url: { alphabet: "base64url", omitPadding: true },
+};
 /**
  * Encode a byte array to a base64 string.
  *
@@ -56195,6 +56263,9 @@ function base64_encoding_base64Decode(base64Str) {
  * characters +/ by their URL-safe counterparts -_, and omits padding.
  */
 function base64_encoding_base64Encode(bytes, encoding = "std") {
+    if (nativeToBase64) {
+        return nativeToBase64.call(bytes, toBase64OptionsMap[encoding]);
+    }
     const table = getEncodeTable(encoding);
     const pad = encoding == "std";
     let base64 = "", groupPos = 0, // position in base64 group
@@ -56611,6 +56682,7 @@ function nested_types_parent(desc) {
 
 
 
+
 /**
  * Create a registry from the given inputs.
  *
@@ -56782,44 +56854,48 @@ function initBaseRegistry(inputs) {
     }
     return registry;
 }
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO2: const $name = $number;
 const registry_EDITION_PROTO2 = 998;
-// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name: Edition.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_PROTO3: const $name = $number;
 const registry_EDITION_PROTO3 = 999;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_STRING: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.Edition.EDITION_UNSTABLE: const $name = $number;
+const EDITION_UNSTABLE = 9999;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_STRING: const $name = $number;
 const TYPE_STRING = 9;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_GROUP: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_GROUP: const $name = $number;
 const TYPE_GROUP = 10;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_MESSAGE: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_MESSAGE: const $name = $number;
 const TYPE_MESSAGE = 11;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_BYTES: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_BYTES: const $name = $number;
 const TYPE_BYTES = 12;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_ENUM: const $name: FieldDescriptorProto_Type.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Type.TYPE_ENUM: const $name = $number;
 const TYPE_ENUM = 14;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REPEATED: const $name: FieldDescriptorProto_Label.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REPEATED: const $name = $number;
 const LABEL_REPEATED = 3;
-// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REQUIRED: const $name: FieldDescriptorProto_Label.$localName = $number;
+// bootstrap-inject google.protobuf.FieldDescriptorProto.Label.LABEL_REQUIRED: const $name = $number;
 const LABEL_REQUIRED = 2;
-// bootstrap-inject google.protobuf.FieldOptions.JSType.JS_STRING: const $name: FieldOptions_JSType.$localName = $number;
+// bootstrap-inject google.protobuf.FieldOptions.JSType.JS_STRING: const $name = $number;
 const JS_STRING = 1;
-// bootstrap-inject google.protobuf.MethodOptions.IdempotencyLevel.IDEMPOTENCY_UNKNOWN: const $name: MethodOptions_IdempotencyLevel.$localName = $number;
+// bootstrap-inject google.protobuf.MethodOptions.IdempotencyLevel.IDEMPOTENCY_UNKNOWN: const $name = $number;
 const IDEMPOTENCY_UNKNOWN = 0;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.EXPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.EXPLICIT: const $name = $number;
 const EXPLICIT = 1;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const registry_IMPLICIT = 2;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const LEGACY_REQUIRED = 3;
-// bootstrap-inject google.protobuf.FeatureSet.RepeatedFieldEncoding.PACKED: const $name: FeatureSet_RepeatedFieldEncoding.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.RepeatedFieldEncoding.PACKED: const $name = $number;
 const PACKED = 1;
-// bootstrap-inject google.protobuf.FeatureSet.MessageEncoding.DELIMITED: const $name: FeatureSet_MessageEncoding.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.MessageEncoding.DELIMITED: const $name = $number;
 const DELIMITED = 2;
-// bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name: FeatureSet_EnumType.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.EnumType.OPEN: const $name = $number;
 const OPEN = 1;
+// bootstrap-inject google.protobuf.FeatureSet.Utf8Validation.VERIFY: const $name = $number;
+const VERIFY = 2;
 // biome-ignore format: want this to read well
-// bootstrap-inject defaults: EDITION_PROTO2 to EDITION_2024: export const minimumEdition: SupportedEdition = $minimumEdition, maximumEdition: SupportedEdition = $maximumEdition;
-// generated from protoc v33.2
-const minimumEdition = 998, maximumEdition = 1001;
+// bootstrap-inject defaults: EDITION_PROTO2 to EDITION_2026: export const minimumEdition: SupportedEdition = $minimumEdition, maximumEdition: SupportedEdition = $maximumEdition;
+// generated from protoc v36.2
+const minimumEdition = 998, maximumEdition = 1002;
 const featureDefaults = {
     // EDITION_PROTO2
     998: {
@@ -56831,6 +56907,7 @@ const featureDefaults = {
         jsonFormat: 2, // LEGACY_BEST_EFFORT,
         enforceNamingStyle: 2, // STYLE_LEGACY,
         defaultSymbolVisibility: 1, // EXPORT_ALL,
+        enforceProtoLimits: 1, // LEGACY_NO_EXPLICIT_LIMITS,
     },
     // EDITION_PROTO3
     999: {
@@ -56842,6 +56919,7 @@ const featureDefaults = {
         jsonFormat: 1, // ALLOW,
         enforceNamingStyle: 2, // STYLE_LEGACY,
         defaultSymbolVisibility: 1, // EXPORT_ALL,
+        enforceProtoLimits: 1, // LEGACY_NO_EXPLICIT_LIMITS,
     },
     // EDITION_2023
     1000: {
@@ -56853,6 +56931,7 @@ const featureDefaults = {
         jsonFormat: 1, // ALLOW,
         enforceNamingStyle: 2, // STYLE_LEGACY,
         defaultSymbolVisibility: 1, // EXPORT_ALL,
+        enforceProtoLimits: 1, // LEGACY_NO_EXPLICIT_LIMITS,
     },
     // EDITION_2024
     1001: {
@@ -56864,6 +56943,19 @@ const featureDefaults = {
         jsonFormat: 1, // ALLOW,
         enforceNamingStyle: 1, // STYLE2024,
         defaultSymbolVisibility: 2, // EXPORT_TOP_LEVEL,
+        enforceProtoLimits: 1, // LEGACY_NO_EXPLICIT_LIMITS,
+    },
+    // EDITION_2026
+    1002: {
+        fieldPresence: 1, // EXPLICIT,
+        enumType: 1, // OPEN,
+        repeatedFieldEncoding: 1, // PACKED,
+        utf8Validation: 2, // VERIFY,
+        messageEncoding: 1, // LENGTH_PREFIXED,
+        jsonFormat: 1, // ALLOW,
+        enforceNamingStyle: 3, // STYLE2026,
+        defaultSymbolVisibility: 4, // STRICT,
+        enforceProtoLimits: 2, // PROTO_LIMITS2026,
     },
 };
 /**
@@ -56979,7 +57071,7 @@ function addFields(message, reg, mapEntries) {
  * parent type, if any.
  */
 function addEnum(proto, file, parent, reg) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const sharedPrefix = findEnumSharedPrefix(proto.name, proto.value);
     const desc = {
         kind: "enum",
@@ -57013,12 +57105,13 @@ function addEnum(proto, file, parent, reg) {
                 ? name
                 : name.substring(sharedPrefix.length)),
             number: p.number,
+            jsonName: (_e = findEnumValueJsonName(p)) !== null && _e !== void 0 ? _e : name,
             toString() {
                 return `enum value ${desc.typeName}.${name}`;
             },
         }));
     }
-    ((_e = parent === null || parent === void 0 ? void 0 : parent.nestedEnums) !== null && _e !== void 0 ? _e : file.enums).push(desc);
+    ((_f = parent === null || parent === void 0 ? void 0 : parent.nestedEnums) !== null && _f !== void 0 ? _f : file.enums).push(desc);
 }
 /**
  * Create a descriptor for a message, including nested types, and add it to our
@@ -57157,6 +57250,7 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
         message: undefined,
         enum: undefined,
         presence: getFieldPresence(proto, oneof, isExtension, parentOrFile),
+        utf8Validation: isUtf8Validated(proto, parentOrFile),
         listKind: undefined,
         mapKind: undefined,
         mapKey: undefined,
@@ -57165,6 +57259,7 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
         longAsString: false,
         getDefaultValue: undefined,
     };
+    let toStr;
     if (isExtension) {
         // extension field
         const file = parentOrFile.kind == "file" ? parentOrFile : parentOrFile.file;
@@ -57176,7 +57271,7 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
         field.oneof = undefined;
         field.typeName = typeName;
         field.jsonName = `[${typeName}]`; // option json_name is not allowed on extension fields
-        field.toString = () => `extension ${typeName}`;
+        toStr = () => `extension ${typeName}`;
         const extendee = reg.getMessage(trimLeadingDot(proto.extendee));
         assert(extendee, `invalid FieldDescriptorProto: extendee ${proto.extendee} not found`);
         field.extendee = extendee;
@@ -57191,8 +57286,16 @@ function newField(proto, parentOrFile, reg, oneof, mapEntries) {
             ? protoCamelCase(proto.name)
             : safeObjectProperty(protoCamelCase(proto.name));
         field.jsonName = proto.jsonName;
-        field.toString = () => `field ${parent.typeName}.${proto.name}`;
+        toStr = () => `field ${parent.typeName}.${proto.name}`;
     }
+    // A plain assignment throws where built-in prototypes are frozen. The
+    // attributes match what an assignment produces.
+    Object.defineProperty(field, "toString", {
+        value: toStr,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    });
     const label = proto.label;
     const type = proto.type;
     const jstype = (_c = proto.options) === null || _c === void 0 ? void 0 : _c.jstype;
@@ -57285,6 +57388,12 @@ function getFileEdition(proto) {
         case "proto3":
             return registry_EDITION_PROTO3;
         case "editions":
+            // EDITION_UNSTABLE is a sandbox for in-development features. Collapse
+            // it to maximumEdition so SupportedEdition and feature resolution do
+            // not leak the test-only edition to users.
+            if (proto.edition === EDITION_UNSTABLE) {
+                return maximumEdition;
+            }
             if (proto.edition in featureDefaults) {
                 return proto.edition;
             }
@@ -57325,6 +57434,36 @@ function findEnumSharedPrefix(enumName, values) {
         }
     }
     return prefix;
+}
+/**
+ * Finds the custom JSON name of an enum value, set with the option
+ * `(pb.enumvalue.json).string` from google/protobuf/json_enumvalue_options.proto.
+ *
+ * Extensions are stored as unknown fields, so we read the option from the
+ * wire format instead of importing the extension, which depends on this file.
+ */
+function findEnumValueJsonName(proto) {
+    var _a, _b;
+    const extensionNumber = 998; // extend EnumValueOptions { JsonEnumValueOptions json = 998; }
+    const fieldNumber = 1; // message JsonEnumValueOptions { string string = 1; }
+    let jsonName;
+    for (const uf of (_b = (_a = proto.options) === null || _a === void 0 ? void 0 : _a.$unknown) !== null && _b !== void 0 ? _b : []) {
+        if (uf.no !== extensionNumber || uf.wireType !== WireType.LengthDelimited) {
+            continue;
+        }
+        // Occurrences of a message field are merged, so the last value wins.
+        const reader = new binary_encoding_BinaryReader(new binary_encoding_BinaryReader(uf.data).bytes());
+        while (reader.pos < reader.len) {
+            const [no, wireType] = reader.tag();
+            if (no === fieldNumber && wireType === WireType.LengthDelimited) {
+                jsonName = reader.string();
+            }
+            else {
+                reader.skip(wireType, no);
+            }
+        }
+    }
+    return jsonName;
 }
 /**
  * Converts lowerCamelCase or UpperCamelCase into lower_snake_case.
@@ -57476,6 +57615,18 @@ function isDelimitedEncoding(proto, parent) {
     }
     return (DELIMITED ==
         resolveFeature("messageEncoding", {
+            proto,
+            parent,
+        }));
+}
+/**
+ * Reject invalid UTF-8 when reading string fields from the binary wire format?
+ * Driven by the resolved `utf8_validation` feature: VERIFY (proto3 / editions
+ * 2023+ default) enforces; NONE (proto2 default) does not.
+ */
+function isUtf8Validated(proto, parent) {
+    return (VERIFY ==
+        resolveFeature("utf8Validation", {
             proto,
             parent,
         }));
@@ -57636,7 +57787,7 @@ function message_messageDesc(file, path, ...paths) {
     return paths.reduce((acc, cur) => acc.nestedMessages[cur], file.messages[path]);
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/descriptor_pb.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/google/protobuf/descriptor_pb.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -57656,7 +57807,7 @@ function message_messageDesc(file, path, ...paths) {
 /**
  * Describes the file google/protobuf/descriptor.proto.
  */
-const file_google_protobuf_descriptor = /*@__PURE__*/ boot({ "name": "google/protobuf/descriptor.proto", "package": "google.protobuf", "messageType": [{ "name": "FileDescriptorSet", "field": [{ "name": "file", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FileDescriptorProto" }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "FileDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "package", "number": 2, "type": 9, "label": 1 }, { "name": "dependency", "number": 3, "type": 9, "label": 3 }, { "name": "public_dependency", "number": 10, "type": 5, "label": 3 }, { "name": "weak_dependency", "number": 11, "type": 5, "label": 3 }, { "name": "option_dependency", "number": 15, "type": 9, "label": 3 }, { "name": "message_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "service", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.ServiceDescriptorProto" }, { "name": "extension", "number": 7, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FileOptions" }, { "name": "source_code_info", "number": 9, "type": 11, "label": 1, "typeName": ".google.protobuf.SourceCodeInfo" }, { "name": "syntax", "number": 12, "type": 9, "label": 1 }, { "name": "edition", "number": 14, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }, { "name": "DescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "field", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "extension", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "nested_type", "number": 3, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "extension_range", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ExtensionRange" }, { "name": "oneof_decl", "number": 8, "type": 11, "label": 3, "typeName": ".google.protobuf.OneofDescriptorProto" }, { "name": "options", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.MessageOptions" }, { "name": "reserved_range", "number": 9, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ReservedRange" }, { "name": "reserved_name", "number": 10, "type": 9, "label": 3 }, { "name": "visibility", "number": 11, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "ExtensionRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions" }] }, { "name": "ReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "ExtensionRangeOptions", "field": [{ "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }, { "name": "declaration", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.ExtensionRangeOptions.Declaration", "options": { "retention": 2 } }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "verification", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions.VerificationState", "defaultValue": "UNVERIFIED", "options": { "retention": 2 } }], "nestedType": [{ "name": "Declaration", "field": [{ "name": "number", "number": 1, "type": 5, "label": 1 }, { "name": "full_name", "number": 2, "type": 9, "label": 1 }, { "name": "type", "number": 3, "type": 9, "label": 1 }, { "name": "reserved", "number": 5, "type": 8, "label": 1 }, { "name": "repeated", "number": 6, "type": 8, "label": 1 }] }], "enumType": [{ "name": "VerificationState", "value": [{ "name": "DECLARATION", "number": 0 }, { "name": "UNVERIFIED", "number": 1 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 3, "type": 5, "label": 1 }, { "name": "label", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Label" }, { "name": "type", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Type" }, { "name": "type_name", "number": 6, "type": 9, "label": 1 }, { "name": "extendee", "number": 2, "type": 9, "label": 1 }, { "name": "default_value", "number": 7, "type": 9, "label": 1 }, { "name": "oneof_index", "number": 9, "type": 5, "label": 1 }, { "name": "json_name", "number": 10, "type": 9, "label": 1 }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions" }, { "name": "proto3_optional", "number": 17, "type": 8, "label": 1 }], "enumType": [{ "name": "Type", "value": [{ "name": "TYPE_DOUBLE", "number": 1 }, { "name": "TYPE_FLOAT", "number": 2 }, { "name": "TYPE_INT64", "number": 3 }, { "name": "TYPE_UINT64", "number": 4 }, { "name": "TYPE_INT32", "number": 5 }, { "name": "TYPE_FIXED64", "number": 6 }, { "name": "TYPE_FIXED32", "number": 7 }, { "name": "TYPE_BOOL", "number": 8 }, { "name": "TYPE_STRING", "number": 9 }, { "name": "TYPE_GROUP", "number": 10 }, { "name": "TYPE_MESSAGE", "number": 11 }, { "name": "TYPE_BYTES", "number": 12 }, { "name": "TYPE_UINT32", "number": 13 }, { "name": "TYPE_ENUM", "number": 14 }, { "name": "TYPE_SFIXED32", "number": 15 }, { "name": "TYPE_SFIXED64", "number": 16 }, { "name": "TYPE_SINT32", "number": 17 }, { "name": "TYPE_SINT64", "number": 18 }] }, { "name": "Label", "value": [{ "name": "LABEL_OPTIONAL", "number": 1 }, { "name": "LABEL_REPEATED", "number": 3 }, { "name": "LABEL_REQUIRED", "number": 2 }] }] }, { "name": "OneofDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "options", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.OneofOptions" }] }, { "name": "EnumDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "value", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumValueDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumOptions" }, { "name": "reserved_range", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto.EnumReservedRange" }, { "name": "reserved_name", "number": 5, "type": 9, "label": 3 }, { "name": "visibility", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "EnumReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "EnumValueDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumValueOptions" }] }, { "name": "ServiceDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "method", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.MethodDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ServiceOptions" }] }, { "name": "MethodDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "input_type", "number": 2, "type": 9, "label": 1 }, { "name": "output_type", "number": 3, "type": 9, "label": 1 }, { "name": "options", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.MethodOptions" }, { "name": "client_streaming", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "server_streaming", "number": 6, "type": 8, "label": 1, "defaultValue": "false" }] }, { "name": "FileOptions", "field": [{ "name": "java_package", "number": 1, "type": 9, "label": 1 }, { "name": "java_outer_classname", "number": 8, "type": 9, "label": 1 }, { "name": "java_multiple_files", "number": 10, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generate_equals_and_hash", "number": 20, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "java_string_check_utf8", "number": 27, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "optimize_for", "number": 9, "type": 14, "label": 1, "typeName": ".google.protobuf.FileOptions.OptimizeMode", "defaultValue": "SPEED" }, { "name": "go_package", "number": 11, "type": 9, "label": 1 }, { "name": "cc_generic_services", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generic_services", "number": 17, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "py_generic_services", "number": 18, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 23, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "cc_enable_arenas", "number": 31, "type": 8, "label": 1, "defaultValue": "true" }, { "name": "objc_class_prefix", "number": 36, "type": 9, "label": 1 }, { "name": "csharp_namespace", "number": 37, "type": 9, "label": 1 }, { "name": "swift_prefix", "number": 39, "type": 9, "label": 1 }, { "name": "php_class_prefix", "number": 40, "type": 9, "label": 1 }, { "name": "php_namespace", "number": 41, "type": 9, "label": 1 }, { "name": "php_metadata_namespace", "number": 44, "type": 9, "label": 1 }, { "name": "ruby_package", "number": 45, "type": 9, "label": 1 }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "OptimizeMode", "value": [{ "name": "SPEED", "number": 1 }, { "name": "CODE_SIZE", "number": 2 }, { "name": "LITE_RUNTIME", "number": 3 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MessageOptions", "field": [{ "name": "message_set_wire_format", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "no_standard_descriptor_accessor", "number": 2, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "map_entry", "number": 7, "type": 8, "label": 1 }, { "name": "deprecated_legacy_json_field_conflicts", "number": 11, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 12, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "FieldOptions", "field": [{ "name": "ctype", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.CType", "defaultValue": "STRING" }, { "name": "packed", "number": 2, "type": 8, "label": 1 }, { "name": "jstype", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.JSType", "defaultValue": "JS_NORMAL" }, { "name": "lazy", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "unverified_lazy", "number": 15, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "weak", "number": 10, "type": 8, "label": 1, "defaultValue": "false", "options": { "deprecated": true } }, { "name": "debug_redact", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "retention", "number": 17, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.OptionRetention" }, { "name": "targets", "number": 19, "type": 14, "label": 3, "typeName": ".google.protobuf.FieldOptions.OptionTargetType" }, { "name": "edition_defaults", "number": 20, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldOptions.EditionDefault" }, { "name": "features", "number": 21, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "feature_support", "number": 22, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "nestedType": [{ "name": "EditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "value", "number": 2, "type": 9, "label": 1 }] }, { "name": "FeatureSupport", "field": [{ "name": "edition_introduced", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "edition_deprecated", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "deprecation_warning", "number": 3, "type": 9, "label": 1 }, { "name": "edition_removed", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }], "enumType": [{ "name": "CType", "value": [{ "name": "STRING", "number": 0 }, { "name": "CORD", "number": 1 }, { "name": "STRING_PIECE", "number": 2 }] }, { "name": "JSType", "value": [{ "name": "JS_NORMAL", "number": 0 }, { "name": "JS_STRING", "number": 1 }, { "name": "JS_NUMBER", "number": 2 }] }, { "name": "OptionRetention", "value": [{ "name": "RETENTION_UNKNOWN", "number": 0 }, { "name": "RETENTION_RUNTIME", "number": 1 }, { "name": "RETENTION_SOURCE", "number": 2 }] }, { "name": "OptionTargetType", "value": [{ "name": "TARGET_TYPE_UNKNOWN", "number": 0 }, { "name": "TARGET_TYPE_FILE", "number": 1 }, { "name": "TARGET_TYPE_EXTENSION_RANGE", "number": 2 }, { "name": "TARGET_TYPE_MESSAGE", "number": 3 }, { "name": "TARGET_TYPE_FIELD", "number": 4 }, { "name": "TARGET_TYPE_ONEOF", "number": 5 }, { "name": "TARGET_TYPE_ENUM", "number": 6 }, { "name": "TARGET_TYPE_ENUM_ENTRY", "number": 7 }, { "name": "TARGET_TYPE_SERVICE", "number": 8 }, { "name": "TARGET_TYPE_METHOD", "number": 9 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "OneofOptions", "field": [{ "name": "features", "number": 1, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumOptions", "field": [{ "name": "allow_alias", "number": 2, "type": 8, "label": 1 }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated_legacy_json_field_conflicts", "number": 6, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "EnumValueOptions", "field": [{ "name": "deprecated", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "features", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "debug_redact", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "feature_support", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "ServiceOptions", "field": [{ "name": "features", "number": 34, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "MethodOptions", "field": [{ "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "idempotency_level", "number": 34, "type": 14, "label": 1, "typeName": ".google.protobuf.MethodOptions.IdempotencyLevel", "defaultValue": "IDEMPOTENCY_UNKNOWN" }, { "name": "features", "number": 35, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "IdempotencyLevel", "value": [{ "name": "IDEMPOTENCY_UNKNOWN", "number": 0 }, { "name": "NO_SIDE_EFFECTS", "number": 1 }, { "name": "IDEMPOTENT", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 536870912 }] }, { "name": "UninterpretedOption", "field": [{ "name": "name", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption.NamePart" }, { "name": "identifier_value", "number": 3, "type": 9, "label": 1 }, { "name": "positive_int_value", "number": 4, "type": 4, "label": 1 }, { "name": "negative_int_value", "number": 5, "type": 3, "label": 1 }, { "name": "double_value", "number": 6, "type": 1, "label": 1 }, { "name": "string_value", "number": 7, "type": 12, "label": 1 }, { "name": "aggregate_value", "number": 8, "type": 9, "label": 1 }], "nestedType": [{ "name": "NamePart", "field": [{ "name": "name_part", "number": 1, "type": 9, "label": 2 }, { "name": "is_extension", "number": 2, "type": 8, "label": 2 }] }] }, { "name": "FeatureSet", "field": [{ "name": "field_presence", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.FieldPresence", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPLICIT", "edition": 900 }, { "value": "IMPLICIT", "edition": 999 }, { "value": "EXPLICIT", "edition": 1000 }] } }, { "name": "enum_type", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnumType", "options": { "retention": 1, "targets": [6, 1], "editionDefaults": [{ "value": "CLOSED", "edition": 900 }, { "value": "OPEN", "edition": 999 }] } }, { "name": "repeated_field_encoding", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.RepeatedFieldEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPANDED", "edition": 900 }, { "value": "PACKED", "edition": 999 }] } }, { "name": "utf8_validation", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.Utf8Validation", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "NONE", "edition": 900 }, { "value": "VERIFY", "edition": 999 }] } }, { "name": "message_encoding", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.MessageEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "LENGTH_PREFIXED", "edition": 900 }] } }, { "name": "json_format", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.JsonFormat", "options": { "retention": 1, "targets": [3, 6, 1], "editionDefaults": [{ "value": "LEGACY_BEST_EFFORT", "edition": 900 }, { "value": "ALLOW", "edition": 999 }] } }, { "name": "enforce_naming_style", "number": 7, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnforceNamingStyle", "options": { "retention": 2, "targets": [1, 2, 3, 4, 5, 6, 7, 8, 9], "editionDefaults": [{ "value": "STYLE_LEGACY", "edition": 900 }, { "value": "STYLE2024", "edition": 1001 }] } }, { "name": "default_symbol_visibility", "number": 8, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility", "options": { "retention": 2, "targets": [1], "editionDefaults": [{ "value": "EXPORT_ALL", "edition": 900 }, { "value": "EXPORT_TOP_LEVEL", "edition": 1001 }] } }], "nestedType": [{ "name": "VisibilityFeature", "enumType": [{ "name": "DefaultSymbolVisibility", "value": [{ "name": "DEFAULT_SYMBOL_VISIBILITY_UNKNOWN", "number": 0 }, { "name": "EXPORT_ALL", "number": 1 }, { "name": "EXPORT_TOP_LEVEL", "number": 2 }, { "name": "LOCAL_ALL", "number": 3 }, { "name": "STRICT", "number": 4 }] }] }], "enumType": [{ "name": "FieldPresence", "value": [{ "name": "FIELD_PRESENCE_UNKNOWN", "number": 0 }, { "name": "EXPLICIT", "number": 1 }, { "name": "IMPLICIT", "number": 2 }, { "name": "LEGACY_REQUIRED", "number": 3 }] }, { "name": "EnumType", "value": [{ "name": "ENUM_TYPE_UNKNOWN", "number": 0 }, { "name": "OPEN", "number": 1 }, { "name": "CLOSED", "number": 2 }] }, { "name": "RepeatedFieldEncoding", "value": [{ "name": "REPEATED_FIELD_ENCODING_UNKNOWN", "number": 0 }, { "name": "PACKED", "number": 1 }, { "name": "EXPANDED", "number": 2 }] }, { "name": "Utf8Validation", "value": [{ "name": "UTF8_VALIDATION_UNKNOWN", "number": 0 }, { "name": "VERIFY", "number": 2 }, { "name": "NONE", "number": 3 }] }, { "name": "MessageEncoding", "value": [{ "name": "MESSAGE_ENCODING_UNKNOWN", "number": 0 }, { "name": "LENGTH_PREFIXED", "number": 1 }, { "name": "DELIMITED", "number": 2 }] }, { "name": "JsonFormat", "value": [{ "name": "JSON_FORMAT_UNKNOWN", "number": 0 }, { "name": "ALLOW", "number": 1 }, { "name": "LEGACY_BEST_EFFORT", "number": 2 }] }, { "name": "EnforceNamingStyle", "value": [{ "name": "ENFORCE_NAMING_STYLE_UNKNOWN", "number": 0 }, { "name": "STYLE2024", "number": 1 }, { "name": "STYLE_LEGACY", "number": 2 }] }], "extensionRange": [{ "start": 1000, "end": 9995 }, { "start": 9995, "end": 10000 }, { "start": 10000, "end": 10001 }] }, { "name": "FeatureSetDefaults", "field": [{ "name": "defaults", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FeatureSetDefaults.FeatureSetEditionDefault" }, { "name": "minimum_edition", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "maximum_edition", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }], "nestedType": [{ "name": "FeatureSetEditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "overridable_features", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "fixed_features", "number": 5, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }] }] }, { "name": "SourceCodeInfo", "field": [{ "name": "location", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.SourceCodeInfo.Location" }], "nestedType": [{ "name": "Location", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "span", "number": 2, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "leading_comments", "number": 3, "type": 9, "label": 1 }, { "name": "trailing_comments", "number": 4, "type": 9, "label": 1 }, { "name": "leading_detached_comments", "number": 6, "type": 9, "label": 3 }] }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "GeneratedCodeInfo", "field": [{ "name": "annotation", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation" }], "nestedType": [{ "name": "Annotation", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "source_file", "number": 2, "type": 9, "label": 1 }, { "name": "begin", "number": 3, "type": 5, "label": 1 }, { "name": "end", "number": 4, "type": 5, "label": 1 }, { "name": "semantic", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation.Semantic" }], "enumType": [{ "name": "Semantic", "value": [{ "name": "NONE", "number": 0 }, { "name": "SET", "number": 1 }, { "name": "ALIAS", "number": 2 }] }] }] }], "enumType": [{ "name": "Edition", "value": [{ "name": "EDITION_UNKNOWN", "number": 0 }, { "name": "EDITION_LEGACY", "number": 900 }, { "name": "EDITION_PROTO2", "number": 998 }, { "name": "EDITION_PROTO3", "number": 999 }, { "name": "EDITION_2023", "number": 1000 }, { "name": "EDITION_2024", "number": 1001 }, { "name": "EDITION_UNSTABLE", "number": 9999 }, { "name": "EDITION_1_TEST_ONLY", "number": 1 }, { "name": "EDITION_2_TEST_ONLY", "number": 2 }, { "name": "EDITION_99997_TEST_ONLY", "number": 99997 }, { "name": "EDITION_99998_TEST_ONLY", "number": 99998 }, { "name": "EDITION_99999_TEST_ONLY", "number": 99999 }, { "name": "EDITION_MAX", "number": 2147483647 }] }, { "name": "SymbolVisibility", "value": [{ "name": "VISIBILITY_UNSET", "number": 0 }, { "name": "VISIBILITY_LOCAL", "number": 1 }, { "name": "VISIBILITY_EXPORT", "number": 2 }] }] });
+const file_google_protobuf_descriptor = /*@__PURE__*/ boot({ "name": "google/protobuf/descriptor.proto", "package": "google.protobuf", "messageType": [{ "name": "FileDescriptorSet", "field": [{ "name": "file", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FileDescriptorProto" }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "FileDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "package", "number": 2, "type": 9, "label": 1 }, { "name": "dependency", "number": 3, "type": 9, "label": 3 }, { "name": "public_dependency", "number": 10, "type": 5, "label": 3 }, { "name": "weak_dependency", "number": 11, "type": 5, "label": 3 }, { "name": "option_dependency", "number": 15, "type": 9, "label": 3 }, { "name": "message_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "service", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.ServiceDescriptorProto" }, { "name": "extension", "number": 7, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FileOptions" }, { "name": "source_code_info", "number": 9, "type": 11, "label": 1, "typeName": ".google.protobuf.SourceCodeInfo" }, { "name": "syntax", "number": 12, "type": 9, "label": 1 }, { "name": "edition", "number": 14, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }] }, { "name": "DescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "field", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "extension", "number": 6, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldDescriptorProto" }, { "name": "nested_type", "number": 3, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto" }, { "name": "enum_type", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto" }, { "name": "extension_range", "number": 5, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ExtensionRange" }, { "name": "oneof_decl", "number": 8, "type": 11, "label": 3, "typeName": ".google.protobuf.OneofDescriptorProto" }, { "name": "options", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.MessageOptions" }, { "name": "reserved_range", "number": 9, "type": 11, "label": 3, "typeName": ".google.protobuf.DescriptorProto.ReservedRange" }, { "name": "reserved_name", "number": 10, "type": 9, "label": 3 }, { "name": "visibility", "number": 11, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "ExtensionRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions" }] }, { "name": "ReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "ExtensionRangeOptions", "field": [{ "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }, { "name": "declaration", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.ExtensionRangeOptions.Declaration", "options": { "retention": 2 } }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "verification", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.ExtensionRangeOptions.VerificationState", "defaultValue": "UNVERIFIED", "options": { "retention": 2 } }], "nestedType": [{ "name": "Declaration", "field": [{ "name": "number", "number": 1, "type": 5, "label": 1 }, { "name": "full_name", "number": 2, "type": 9, "label": 1 }, { "name": "type", "number": 3, "type": 9, "label": 1 }, { "name": "reserved", "number": 5, "type": 8, "label": 1 }, { "name": "repeated", "number": 6, "type": 8, "label": 1 }] }], "enumType": [{ "name": "VerificationState", "value": [{ "name": "DECLARATION", "number": 0 }, { "name": "UNVERIFIED", "number": 1 }] }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "FieldDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 3, "type": 5, "label": 1 }, { "name": "label", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Label" }, { "name": "type", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldDescriptorProto.Type" }, { "name": "type_name", "number": 6, "type": 9, "label": 1 }, { "name": "extendee", "number": 2, "type": 9, "label": 1 }, { "name": "default_value", "number": 7, "type": 9, "label": 1 }, { "name": "oneof_index", "number": 9, "type": 5, "label": 1 }, { "name": "json_name", "number": 10, "type": 9, "label": 1 }, { "name": "options", "number": 8, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions" }, { "name": "proto3_optional", "number": 17, "type": 8, "label": 1 }], "enumType": [{ "name": "Type", "value": [{ "name": "TYPE_DOUBLE", "number": 1 }, { "name": "TYPE_FLOAT", "number": 2 }, { "name": "TYPE_INT64", "number": 3 }, { "name": "TYPE_UINT64", "number": 4 }, { "name": "TYPE_INT32", "number": 5 }, { "name": "TYPE_FIXED64", "number": 6 }, { "name": "TYPE_FIXED32", "number": 7 }, { "name": "TYPE_BOOL", "number": 8 }, { "name": "TYPE_STRING", "number": 9 }, { "name": "TYPE_GROUP", "number": 10 }, { "name": "TYPE_MESSAGE", "number": 11 }, { "name": "TYPE_BYTES", "number": 12 }, { "name": "TYPE_UINT32", "number": 13 }, { "name": "TYPE_ENUM", "number": 14 }, { "name": "TYPE_SFIXED32", "number": 15 }, { "name": "TYPE_SFIXED64", "number": 16 }, { "name": "TYPE_SINT32", "number": 17 }, { "name": "TYPE_SINT64", "number": 18 }] }, { "name": "Label", "value": [{ "name": "LABEL_OPTIONAL", "number": 1 }, { "name": "LABEL_REPEATED", "number": 3 }, { "name": "LABEL_REQUIRED", "number": 2 }] }] }, { "name": "OneofDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "options", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.OneofOptions" }] }, { "name": "EnumDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "value", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumValueDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumOptions" }, { "name": "reserved_range", "number": 4, "type": 11, "label": 3, "typeName": ".google.protobuf.EnumDescriptorProto.EnumReservedRange" }, { "name": "reserved_name", "number": 5, "type": 9, "label": 3 }, { "name": "visibility", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.SymbolVisibility" }], "nestedType": [{ "name": "EnumReservedRange", "field": [{ "name": "start", "number": 1, "type": 5, "label": 1 }, { "name": "end", "number": 2, "type": 5, "label": 1 }] }] }, { "name": "EnumValueDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "number", "number": 2, "type": 5, "label": 1 }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.EnumValueOptions" }] }, { "name": "ServiceDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "method", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.MethodDescriptorProto" }, { "name": "options", "number": 3, "type": 11, "label": 1, "typeName": ".google.protobuf.ServiceOptions" }] }, { "name": "MethodDescriptorProto", "field": [{ "name": "name", "number": 1, "type": 9, "label": 1 }, { "name": "input_type", "number": 2, "type": 9, "label": 1 }, { "name": "output_type", "number": 3, "type": 9, "label": 1 }, { "name": "options", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.MethodOptions" }, { "name": "client_streaming", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "server_streaming", "number": 6, "type": 8, "label": 1, "defaultValue": "false" }] }, { "name": "FileOptions", "field": [{ "name": "java_package", "number": 1, "type": 9, "label": 1 }, { "name": "java_outer_classname", "number": 8, "type": 9, "label": 1 }, { "name": "java_multiple_files", "number": 10, "type": 8, "label": 1, "defaultValue": "false", "options": {} }, { "name": "java_generate_equals_and_hash", "number": 20, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "java_string_check_utf8", "number": 27, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "optimize_for", "number": 9, "type": 14, "label": 1, "typeName": ".google.protobuf.FileOptions.OptimizeMode", "defaultValue": "SPEED" }, { "name": "go_package", "number": 11, "type": 9, "label": 1 }, { "name": "cc_generic_services", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "java_generic_services", "number": 17, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "py_generic_services", "number": 18, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 23, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "cc_enable_arenas", "number": 31, "type": 8, "label": 1, "defaultValue": "true", "options": {} }, { "name": "objc_class_prefix", "number": 36, "type": 9, "label": 1 }, { "name": "csharp_namespace", "number": 37, "type": 9, "label": 1 }, { "name": "swift_prefix", "number": 39, "type": 9, "label": 1 }, { "name": "php_class_prefix", "number": 40, "type": 9, "label": 1 }, { "name": "php_namespace", "number": 41, "type": 9, "label": 1 }, { "name": "php_metadata_namespace", "number": 44, "type": 9, "label": 1 }, { "name": "ruby_package", "number": 45, "type": 9, "label": 1 }, { "name": "features", "number": 50, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "OptimizeMode", "value": [{ "name": "SPEED", "number": 1 }, { "name": "CODE_SIZE", "number": 2 }, { "name": "LITE_RUNTIME", "number": 3 }] }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "MessageOptions", "field": [{ "name": "message_set_wire_format", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "no_standard_descriptor_accessor", "number": 2, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "map_entry", "number": 7, "type": 8, "label": 1 }, { "name": "deprecated_legacy_json_field_conflicts", "number": 11, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 12, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "FieldOptions", "field": [{ "name": "ctype", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.CType", "defaultValue": "STRING" }, { "name": "packed", "number": 2, "type": 8, "label": 1 }, { "name": "jstype", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.JSType", "defaultValue": "JS_NORMAL" }, { "name": "lazy", "number": 5, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "unverified_lazy", "number": 15, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "weak", "number": 10, "type": 8, "label": 1, "defaultValue": "false", "options": { "deprecated": true } }, { "name": "debug_redact", "number": 16, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "retention", "number": 17, "type": 14, "label": 1, "typeName": ".google.protobuf.FieldOptions.OptionRetention" }, { "name": "targets", "number": 19, "type": 14, "label": 3, "typeName": ".google.protobuf.FieldOptions.OptionTargetType" }, { "name": "edition_defaults", "number": 20, "type": 11, "label": 3, "typeName": ".google.protobuf.FieldOptions.EditionDefault" }, { "name": "features", "number": 21, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "feature_support", "number": 22, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "nestedType": [{ "name": "EditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "value", "number": 2, "type": 9, "label": 1 }] }, { "name": "FeatureSupport", "field": [{ "name": "edition_introduced", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "edition_deprecated", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "deprecation_warning", "number": 3, "type": 9, "label": 1 }, { "name": "edition_removed", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "removal_error", "number": 5, "type": 9, "label": 1 }] }], "enumType": [{ "name": "CType", "value": [{ "name": "STRING", "number": 0 }, { "name": "CORD", "number": 1 }, { "name": "STRING_PIECE", "number": 2 }] }, { "name": "JSType", "value": [{ "name": "JS_NORMAL", "number": 0 }, { "name": "JS_STRING", "number": 1 }, { "name": "JS_NUMBER", "number": 2 }] }, { "name": "OptionRetention", "value": [{ "name": "RETENTION_UNKNOWN", "number": 0 }, { "name": "RETENTION_RUNTIME", "number": 1 }, { "name": "RETENTION_SOURCE", "number": 2 }] }, { "name": "OptionTargetType", "value": [{ "name": "TARGET_TYPE_UNKNOWN", "number": 0 }, { "name": "TARGET_TYPE_FILE", "number": 1 }, { "name": "TARGET_TYPE_EXTENSION_RANGE", "number": 2 }, { "name": "TARGET_TYPE_MESSAGE", "number": 3 }, { "name": "TARGET_TYPE_FIELD", "number": 4 }, { "name": "TARGET_TYPE_ONEOF", "number": 5 }, { "name": "TARGET_TYPE_ENUM", "number": 6 }, { "name": "TARGET_TYPE_ENUM_ENTRY", "number": 7 }, { "name": "TARGET_TYPE_SERVICE", "number": 8 }, { "name": "TARGET_TYPE_METHOD", "number": 9 }] }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "OneofOptions", "field": [{ "name": "features", "number": 1, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "EnumOptions", "field": [{ "name": "allow_alias", "number": 2, "type": 8, "label": 1 }, { "name": "deprecated", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "deprecated_legacy_json_field_conflicts", "number": 6, "type": 8, "label": 1, "options": { "deprecated": true } }, { "name": "features", "number": 7, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "EnumValueOptions", "field": [{ "name": "deprecated", "number": 1, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "features", "number": 2, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "debug_redact", "number": 3, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "feature_support", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FieldOptions.FeatureSupport" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "ServiceOptions", "field": [{ "name": "features", "number": 34, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "MethodOptions", "field": [{ "name": "deprecated", "number": 33, "type": 8, "label": 1, "defaultValue": "false" }, { "name": "idempotency_level", "number": 34, "type": 14, "label": 1, "typeName": ".google.protobuf.MethodOptions.IdempotencyLevel", "defaultValue": "IDEMPOTENCY_UNKNOWN" }, { "name": "features", "number": 35, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "uninterpreted_option", "number": 999, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption" }], "enumType": [{ "name": "IdempotencyLevel", "value": [{ "name": "IDEMPOTENCY_UNKNOWN", "number": 0 }, { "name": "NO_SIDE_EFFECTS", "number": 1 }, { "name": "IDEMPOTENT", "number": 2 }] }], "extensionRange": [{ "start": 990, "end": 999 }, { "start": 1000, "end": 536870912 }] }, { "name": "UninterpretedOption", "field": [{ "name": "name", "number": 2, "type": 11, "label": 3, "typeName": ".google.protobuf.UninterpretedOption.NamePart" }, { "name": "identifier_value", "number": 3, "type": 9, "label": 1 }, { "name": "positive_int_value", "number": 4, "type": 4, "label": 1 }, { "name": "negative_int_value", "number": 5, "type": 3, "label": 1 }, { "name": "double_value", "number": 6, "type": 1, "label": 1 }, { "name": "string_value", "number": 7, "type": 12, "label": 1 }, { "name": "aggregate_value", "number": 8, "type": 9, "label": 1 }], "nestedType": [{ "name": "NamePart", "field": [{ "name": "name_part", "number": 1, "type": 9, "label": 2 }, { "name": "is_extension", "number": 2, "type": 8, "label": 2 }] }] }, { "name": "FeatureSet", "field": [{ "name": "field_presence", "number": 1, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.FieldPresence", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPLICIT", "edition": 900 }, { "value": "IMPLICIT", "edition": 999 }, { "value": "EXPLICIT", "edition": 1000 }] } }, { "name": "enum_type", "number": 2, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnumType", "options": { "retention": 1, "targets": [6, 1], "editionDefaults": [{ "value": "CLOSED", "edition": 900 }, { "value": "OPEN", "edition": 999 }] } }, { "name": "repeated_field_encoding", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.RepeatedFieldEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "EXPANDED", "edition": 900 }, { "value": "PACKED", "edition": 999 }] } }, { "name": "utf8_validation", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.Utf8Validation", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "NONE", "edition": 900 }, { "value": "VERIFY", "edition": 999 }] } }, { "name": "message_encoding", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.MessageEncoding", "options": { "retention": 1, "targets": [4, 1], "editionDefaults": [{ "value": "LENGTH_PREFIXED", "edition": 900 }] } }, { "name": "json_format", "number": 6, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.JsonFormat", "options": { "retention": 1, "targets": [3, 6, 1], "editionDefaults": [{ "value": "LEGACY_BEST_EFFORT", "edition": 900 }, { "value": "ALLOW", "edition": 999 }] } }, { "name": "enforce_naming_style", "number": 7, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.EnforceNamingStyle", "options": { "retention": 2, "targets": [1, 2, 3, 4, 5, 6, 7, 8, 9], "editionDefaults": [{ "value": "STYLE_LEGACY", "edition": 900 }, { "value": "STYLE2024", "edition": 1001 }, { "value": "STYLE2026", "edition": 1002 }] } }, { "name": "default_symbol_visibility", "number": 8, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility", "options": { "retention": 2, "targets": [1], "editionDefaults": [{ "value": "EXPORT_ALL", "edition": 900 }, { "value": "EXPORT_TOP_LEVEL", "edition": 1001 }, { "value": "STRICT", "edition": 1002 }] } }, { "name": "enforce_proto_limits", "number": 9, "type": 14, "label": 1, "typeName": ".google.protobuf.FeatureSet.ProtoLimitsFeature.EnforceProtoLimits", "options": { "retention": 2, "targets": [6, 3, 4, 5], "editionDefaults": [{ "value": "LEGACY_NO_EXPLICIT_LIMITS", "edition": 900 }, { "value": "PROTO_LIMITS2026", "edition": 1002 }] } }], "nestedType": [{ "name": "VisibilityFeature", "enumType": [{ "name": "DefaultSymbolVisibility", "value": [{ "name": "DEFAULT_SYMBOL_VISIBILITY_UNKNOWN", "number": 0 }, { "name": "EXPORT_ALL", "number": 1 }, { "name": "EXPORT_TOP_LEVEL", "number": 2 }, { "name": "LOCAL_ALL", "number": 3 }, { "name": "STRICT", "number": 4 }] }] }, { "name": "ProtoLimitsFeature", "enumType": [{ "name": "EnforceProtoLimits", "value": [{ "name": "PROTO_LIMITS_UNKNOWN", "number": 0 }, { "name": "LEGACY_NO_EXPLICIT_LIMITS", "number": 1 }, { "name": "PROTO_LIMITS2026", "number": 2 }] }] }], "enumType": [{ "name": "FieldPresence", "value": [{ "name": "FIELD_PRESENCE_UNKNOWN", "number": 0 }, { "name": "EXPLICIT", "number": 1 }, { "name": "IMPLICIT", "number": 2 }, { "name": "LEGACY_REQUIRED", "number": 3 }] }, { "name": "EnumType", "value": [{ "name": "ENUM_TYPE_UNKNOWN", "number": 0 }, { "name": "OPEN", "number": 1 }, { "name": "CLOSED", "number": 2 }] }, { "name": "RepeatedFieldEncoding", "value": [{ "name": "REPEATED_FIELD_ENCODING_UNKNOWN", "number": 0 }, { "name": "PACKED", "number": 1 }, { "name": "EXPANDED", "number": 2 }] }, { "name": "Utf8Validation", "value": [{ "name": "UTF8_VALIDATION_UNKNOWN", "number": 0 }, { "name": "VERIFY", "number": 2 }, { "name": "NONE", "number": 3 }] }, { "name": "MessageEncoding", "value": [{ "name": "MESSAGE_ENCODING_UNKNOWN", "number": 0 }, { "name": "LENGTH_PREFIXED", "number": 1 }, { "name": "DELIMITED", "number": 2 }] }, { "name": "JsonFormat", "value": [{ "name": "JSON_FORMAT_UNKNOWN", "number": 0 }, { "name": "ALLOW", "number": 1 }, { "name": "LEGACY_BEST_EFFORT", "number": 2 }] }, { "name": "EnforceNamingStyle", "value": [{ "name": "ENFORCE_NAMING_STYLE_UNKNOWN", "number": 0 }, { "name": "STYLE2024", "number": 1 }, { "name": "STYLE_LEGACY", "number": 2 }, { "name": "STYLE2026", "number": 3 }] }], "extensionRange": [{ "start": 1000, "end": 9995 }, { "start": 9995, "end": 10000 }, { "start": 10000, "end": 10001 }] }, { "name": "FeatureSetDefaults", "field": [{ "name": "defaults", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.FeatureSetDefaults.FeatureSetEditionDefault" }, { "name": "minimum_edition", "number": 4, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "maximum_edition", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }], "nestedType": [{ "name": "FeatureSetEditionDefault", "field": [{ "name": "edition", "number": 3, "type": 14, "label": 1, "typeName": ".google.protobuf.Edition" }, { "name": "overridable_features", "number": 4, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }, { "name": "fixed_features", "number": 5, "type": 11, "label": 1, "typeName": ".google.protobuf.FeatureSet" }] }] }, { "name": "SourceCodeInfo", "field": [{ "name": "location", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.SourceCodeInfo.Location" }], "nestedType": [{ "name": "Location", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "span", "number": 2, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "leading_comments", "number": 3, "type": 9, "label": 1 }, { "name": "trailing_comments", "number": 4, "type": 9, "label": 1 }, { "name": "leading_detached_comments", "number": 6, "type": 9, "label": 3 }] }], "extensionRange": [{ "start": 536000000, "end": 536000001 }] }, { "name": "GeneratedCodeInfo", "field": [{ "name": "annotation", "number": 1, "type": 11, "label": 3, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation" }], "nestedType": [{ "name": "Annotation", "field": [{ "name": "path", "number": 1, "type": 5, "label": 3, "options": { "packed": true } }, { "name": "source_file", "number": 2, "type": 9, "label": 1 }, { "name": "begin", "number": 3, "type": 5, "label": 1 }, { "name": "end", "number": 4, "type": 5, "label": 1 }, { "name": "semantic", "number": 5, "type": 14, "label": 1, "typeName": ".google.protobuf.GeneratedCodeInfo.Annotation.Semantic" }], "enumType": [{ "name": "Semantic", "value": [{ "name": "NONE", "number": 0 }, { "name": "SET", "number": 1 }, { "name": "ALIAS", "number": 2 }] }] }] }], "enumType": [{ "name": "Edition", "value": [{ "name": "EDITION_UNKNOWN", "number": 0 }, { "name": "EDITION_LEGACY", "number": 900 }, { "name": "EDITION_PROTO2", "number": 998 }, { "name": "EDITION_PROTO3", "number": 999 }, { "name": "EDITION_2023", "number": 1000 }, { "name": "EDITION_2024", "number": 1001 }, { "name": "EDITION_2026", "number": 1002 }, { "name": "EDITION_UNSTABLE", "number": 9999 }, { "name": "EDITION_1_TEST_ONLY", "number": 1 }, { "name": "EDITION_2_TEST_ONLY", "number": 2 }, { "name": "EDITION_99997_TEST_ONLY", "number": 99997 }, { "name": "EDITION_99998_TEST_ONLY", "number": 99998 }, { "name": "EDITION_99999_TEST_ONLY", "number": 99999 }, { "name": "EDITION_MAX", "number": 2147483647 }] }, { "name": "SymbolVisibility", "value": [{ "name": "VISIBILITY_UNSET", "number": 0 }, { "name": "VISIBILITY_LOCAL", "number": 1 }, { "name": "VISIBILITY_EXPORT", "number": 2 }] }] });
 /**
  * Describes the message google.protobuf.FileDescriptorSet.
  * Use `create(FileDescriptorSetSchema)` to create a new message.
@@ -58192,6 +58343,41 @@ var FeatureSet_VisibilityFeature_DefaultSymbolVisibility;
  */
 const FeatureSet_VisibilityFeature_DefaultSymbolVisibilitySchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (enumDesc(file_google_protobuf_descriptor, 19, 0, 0)));
 /**
+ * Describes the message google.protobuf.FeatureSet.ProtoLimitsFeature.
+ * Use `create(FeatureSet_ProtoLimitsFeatureSchema)` to create a new message.
+ */
+const FeatureSet_ProtoLimitsFeatureSchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (messageDesc(file_google_protobuf_descriptor, 19, 1)));
+/**
+ * @generated from enum google.protobuf.FeatureSet.ProtoLimitsFeature.EnforceProtoLimits
+ */
+var FeatureSet_ProtoLimitsFeature_EnforceProtoLimits;
+(function (FeatureSet_ProtoLimitsFeature_EnforceProtoLimits) {
+    /**
+     * @generated from enum value: PROTO_LIMITS_UNKNOWN = 0;
+     */
+    FeatureSet_ProtoLimitsFeature_EnforceProtoLimits[FeatureSet_ProtoLimitsFeature_EnforceProtoLimits["PROTO_LIMITS_UNKNOWN"] = 0] = "PROTO_LIMITS_UNKNOWN";
+    /**
+     * Default pre-EDITION_2026: there are no limit enforcement at the protoc
+     * level. Practical limits still exist, but they will tend to fail while
+     * compiling protoc-generated code, and these limits tend to be language
+     * or toolchain specific.
+     *
+     * @generated from enum value: LEGACY_NO_EXPLICIT_LIMITS = 1;
+     */
+    FeatureSet_ProtoLimitsFeature_EnforceProtoLimits[FeatureSet_ProtoLimitsFeature_EnforceProtoLimits["LEGACY_NO_EXPLICIT_LIMITS"] = 1] = "LEGACY_NO_EXPLICIT_LIMITS";
+    /**
+     * A set of limits enforced by Edition 2026 by default. For a detailed
+     * list of all the limits please consult the Edition 2026 documentation.
+     *
+     * @generated from enum value: PROTO_LIMITS2026 = 2;
+     */
+    FeatureSet_ProtoLimitsFeature_EnforceProtoLimits[FeatureSet_ProtoLimitsFeature_EnforceProtoLimits["PROTO_LIMITS2026"] = 2] = "PROTO_LIMITS2026";
+})(FeatureSet_ProtoLimitsFeature_EnforceProtoLimits || (FeatureSet_ProtoLimitsFeature_EnforceProtoLimits = {}));
+/**
+ * Describes the enum google.protobuf.FeatureSet.ProtoLimitsFeature.EnforceProtoLimits.
+ */
+const FeatureSet_ProtoLimitsFeature_EnforceProtoLimitsSchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (enumDesc(file_google_protobuf_descriptor, 19, 1, 0)));
+/**
  * @generated from enum google.protobuf.FeatureSet.FieldPresence
  */
 var FeatureSet_FieldPresence;
@@ -58344,6 +58530,10 @@ var FeatureSet_EnforceNamingStyle;
      * @generated from enum value: STYLE_LEGACY = 2;
      */
     FeatureSet_EnforceNamingStyle[FeatureSet_EnforceNamingStyle["STYLE_LEGACY"] = 2] = "STYLE_LEGACY";
+    /**
+     * @generated from enum value: STYLE2026 = 3;
+     */
+    FeatureSet_EnforceNamingStyle[FeatureSet_EnforceNamingStyle["STYLE2026"] = 3] = "STYLE2026";
 })(FeatureSet_EnforceNamingStyle || (FeatureSet_EnforceNamingStyle = {}));
 /**
  * Describes the enum google.protobuf.FeatureSet.EnforceNamingStyle.
@@ -58456,6 +58646,10 @@ var Edition;
      */
     Edition[Edition["EDITION_2024"] = 1001] = "EDITION_2024";
     /**
+     * @generated from enum value: EDITION_2026 = 1002;
+     */
+    Edition[Edition["EDITION_2026"] = 1002] = "EDITION_2026";
+    /**
      * A placeholder edition for developing and testing unscheduled features.
      *
      * @generated from enum value: EDITION_UNSTABLE = 9999;
@@ -58545,20 +58739,22 @@ const SymbolVisibilitySchema = /*@__PURE__*/ (/* unused pure expression or super
 
 
 
-// Default options for parsing binary data.
-const readDefaults = {
-    readUnknownFields: true,
-};
-function makeReadOptions(options) {
-    return options ? Object.assign(Object.assign({}, readDefaults), options) : readDefaults;
+
+
+
+/**
+ * @private Only exported for getExtension()
+ */
+function makeReadContext(options) {
+    return Object.assign(Object.assign({ readUnknownFields: true, recursionLimit: 100 }, options), { depth: 0 });
 }
 /**
  * Parse serialized binary data.
  */
 function from_binary_fromBinary(schema, bytes, options) {
-    const msg = reflect_reflect(schema, undefined, false);
-    readMessage(msg, new binary_encoding_BinaryReader(bytes), makeReadOptions(options), false, bytes.byteLength);
-    return msg.message;
+    const message = create_create(schema);
+    compiledReader(schema).read(message, new binary_encoding_BinaryReader(bytes), makeReadContext(options), bytes.byteLength);
+    return message;
 }
 /**
  * Parse from binary data, merging fields.
@@ -58570,197 +58766,371 @@ function from_binary_fromBinary(schema, bytes, options) {
  * new data.
  */
 function from_binary_mergeFromBinary(schema, target, bytes, options) {
-    readMessage(reflect(schema, target, false), new BinaryReader(bytes), makeReadOptions(options), false, bytes.byteLength);
+    if (target.$typeName !== schema.typeName &&
+        schema.fields.length > 0) {
+        throw new FieldError(schema.fields[0], `cannot use ${schema.fields[0]} with message ${target.$typeName}`, "ForeignFieldError");
+    }
+    compiledReader(schema).read(target, new BinaryReader(bytes), makeReadContext(options), bytes.byteLength);
     return target;
 }
+const compiledReaders = new WeakMap();
 /**
- * If `delimited` is false, read the length given in `lengthOrDelimitedFieldNo`.
- *
- * If `delimited` is true, read until an EndGroup tag. `lengthOrDelimitedFieldNo`
- * is the expected field number.
- *
- * @private
+ * Return the compiled decoder for a message, compiling it on first use.
  */
-function readMessage(message, reader, options, delimited, lengthOrDelimitedFieldNo) {
-    var _a;
-    const end = delimited ? reader.len : reader.pos + lengthOrDelimitedFieldNo;
-    let fieldNo;
-    let wireType;
-    const unknownFields = (_a = message.getUnknown()) !== null && _a !== void 0 ? _a : [];
-    while (reader.pos < end) {
-        [fieldNo, wireType] = reader.tag();
-        if (delimited && wireType == WireType.EndGroup) {
-            break;
-        }
-        const field = message.findNumber(fieldNo);
-        if (!field) {
-            const data = reader.skip(wireType, fieldNo);
-            if (options.readUnknownFields) {
-                unknownFields.push({ no: fieldNo, wireType, data });
-            }
-            continue;
-        }
-        readField(message, reader, field, wireType, options);
+function compiledReader(desc) {
+    let compiled = compiledReaders.get(desc);
+    if (compiled === undefined) {
+        compiled = compileMessage(desc);
     }
-    if (delimited) {
-        if (wireType != WireType.EndGroup || fieldNo !== lengthOrDelimitedFieldNo) {
+    return compiled;
+}
+function compileMessage(desc) {
+    const descString = String(desc);
+    const fieldReaders = new Map();
+    const compiled = {
+        read: compileMessageReader(descString, fieldReaders),
+        readGroup: compileGroupReader(descString, fieldReaders),
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    compiledReaders.set(desc, compiled);
+    for (const field of desc.fields) {
+        fieldReaders.set(field.number, compileFieldReader(field));
+    }
+    return compiled;
+}
+/**
+ * Create a decoder for a length-prefixed message body, dispatching wire
+ * records to the compiled field decoders by field number.
+ */
+function compileMessageReader(descString, fieldReaders) {
+    return (message, reader, ctx, length) => {
+        var _a;
+        if (++ctx.depth > ctx.recursionLimit) {
+            throw new Error(`cannot decode ${descString} from binary: maximum recursion depth of ${ctx.recursionLimit} reached`);
+        }
+        const end = reader.pos + length;
+        const unknownFields = (_a = message.$unknown) !== null && _a !== void 0 ? _a : [];
+        while (reader.pos < end) {
+            const [fieldNo, wireType] = reader.tag();
+            const fieldReader = fieldReaders.get(fieldNo);
+            if (fieldReader === undefined) {
+                // Use remaining recursion budget for skipping nested groups
+                const data = reader.skip(wireType, fieldNo, ctx.recursionLimit - ctx.depth);
+                if (ctx.readUnknownFields) {
+                    unknownFields.push({ no: fieldNo, wireType, data });
+                }
+                continue;
+            }
+            fieldReader(message, reader, ctx, wireType);
+        }
+        if (unknownFields.length > 0) {
+            message.$unknown = unknownFields;
+        }
+        ctx.depth--;
+    };
+}
+/**
+ * Create a decoder for a message with the delimited encoding (group),
+ * reading until the EndGroup tag, like compileMessageReader.
+ */
+function compileGroupReader(descString, fieldReaders) {
+    return (message, reader, ctx, fieldNo) => {
+        var _a;
+        if (++ctx.depth > ctx.recursionLimit) {
+            throw new Error(`cannot decode ${descString} from binary: maximum recursion depth of ${ctx.recursionLimit} reached`);
+        }
+        let recordFieldNo;
+        let wireType;
+        const unknownFields = (_a = message.$unknown) !== null && _a !== void 0 ? _a : [];
+        while (reader.pos < reader.len) {
+            [recordFieldNo, wireType] = reader.tag();
+            if (wireType == WireType.EndGroup) {
+                break;
+            }
+            const fieldReader = fieldReaders.get(recordFieldNo);
+            if (fieldReader === undefined) {
+                // Use remaining recursion budget for skipping nested groups
+                const data = reader.skip(wireType, recordFieldNo, ctx.recursionLimit - ctx.depth);
+                if (ctx.readUnknownFields) {
+                    unknownFields.push({ no: recordFieldNo, wireType, data });
+                }
+                continue;
+            }
+            fieldReader(message, reader, ctx, wireType);
+        }
+        if (wireType != WireType.EndGroup || recordFieldNo !== fieldNo) {
             throw new Error("invalid end group tag");
         }
-    }
-    if (unknownFields.length > 0) {
-        message.setUnknown(unknownFields);
-    }
+        if (unknownFields.length > 0) {
+            message.$unknown = unknownFields;
+        }
+        ctx.depth--;
+    };
 }
 /**
- * @private
+ * @private Only exported for getExtension()
  */
-function readField(message, reader, field, wireType, options) {
-    var _a;
+function readField(message, reader, field, wireType, ctx) {
+    compileFieldReader(field)(message[unsafeLocal], reader, ctx, wireType);
+}
+function compileFieldReader(field) {
     switch (field.fieldKind) {
         case "scalar":
-            message.set(field, readScalar(reader, field.scalar));
-            break;
+            return compileScalarFieldReader(field);
         case "enum":
-            const val = readScalar(reader, descriptors_ScalarType.INT32);
-            if (field.enum.open) {
-                message.set(field, val);
+            return compileEnumFieldReader(field);
+        case "message":
+            return compileMessageFieldReader(field);
+        case "list":
+            return compileListFieldReader(field);
+        case "map":
+            return compileMapFieldReader(field);
+    }
+}
+function compileScalarFieldReader(field) {
+    const readScalar = compileScalarReader(field.scalar, field.utf8Validation, field.longAsString);
+    const localName = field.localName;
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, reader) => {
+            message[oneofLocalName] = {
+                case: localName,
+                value: readScalar(reader),
+            };
+        };
+    }
+    return (message, reader) => {
+        message[localName] = readScalar(reader);
+    };
+}
+function compileEnumFieldReader(field) {
+    var _a;
+    const localName = field.localName;
+    const oneofLocalName = (_a = field.oneof) === null || _a === void 0 ? void 0 : _a.localName;
+    if (field.enum.open) {
+        if (oneofLocalName !== undefined) {
+            return (message, reader) => {
+                message[oneofLocalName] = { case: localName, value: reader.int32() };
+            };
+        }
+        return (message, reader) => {
+            message[localName] = reader.int32();
+        };
+    }
+    // Closed enums: unknown values are stored as unknown fields.
+    const values = field.enum.values;
+    const fieldNo = field.number;
+    return (message, reader, ctx, wireType) => {
+        var _a;
+        const val = reader.int32();
+        if (values.some((v) => v.number === val)) {
+            if (oneofLocalName !== undefined) {
+                message[oneofLocalName] = { case: localName, value: val };
             }
             else {
-                const ok = field.enum.values.some((v) => v.number === val);
-                if (ok) {
-                    message.set(field, val);
-                }
-                else if (options.readUnknownFields) {
-                    const bytes = [];
-                    varint32write(val, bytes);
-                    const unknownFields = (_a = message.getUnknown()) !== null && _a !== void 0 ? _a : [];
-                    unknownFields.push({
-                        no: field.number,
-                        wireType,
-                        data: new Uint8Array(bytes),
-                    });
-                    message.setUnknown(unknownFields);
-                }
+                message[localName] = val;
+            }
+        }
+        else if (ctx.readUnknownFields) {
+            const bytes = [];
+            varint32write(val, bytes);
+            const unknownFields = (_a = message.$unknown) !== null && _a !== void 0 ? _a : [];
+            unknownFields.push({
+                no: fieldNo,
+                wireType,
+                data: new Uint8Array(bytes),
+            });
+            message.$unknown = unknownFields;
+        }
+    };
+}
+function compileMessageFieldReader(field) {
+    const localName = field.localName;
+    const { toMessage, toLocal } = localMessageMapper(field);
+    const readChild = compileChildReader(field);
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, reader, ctx) => {
+            const oneof = message[oneofLocalName];
+            const child = toMessage(oneof.case === localName ? oneof.value : undefined);
+            readChild(child, reader, ctx);
+            message[oneofLocalName] = { case: localName, value: toLocal(child) };
+        };
+    }
+    return (message, reader, ctx) => {
+        const child = toMessage(message[localName]);
+        readChild(child, reader, ctx);
+        message[localName] = toLocal(child);
+    };
+}
+/**
+ * Compile a decoder for the wire format of a message field, honoring the
+ * delimited encoding of the field.
+ */
+function compileChildReader(field) {
+    const compiledChild = compiledReader(field.message);
+    if (field.delimitedEncoding) {
+        const fieldNo = field.number;
+        return (child, reader, ctx) => compiledChild.readGroup(child, reader, ctx, fieldNo);
+    }
+    return (child, reader, ctx) => compiledChild.read(child, reader, ctx, reader.uint32());
+}
+function compileListFieldReader(field) {
+    const localName = field.localName;
+    if (field.listKind == "message") {
+        const { toMessage, toLocal } = localMessageMapper(field);
+        const readChild = compileChildReader(field);
+        return (message, reader, ctx) => {
+            const child = toMessage(undefined);
+            readChild(child, reader, ctx);
+            message[localName].push(toLocal(child));
+        };
+    }
+    const scalarType = field.listKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+    const longAsString = field.listKind == "scalar" ? field.longAsString : false;
+    const readScalar = compileScalarReader(scalarType, field.utf8Validation, longAsString);
+    const packedPossible = scalarType != descriptors_ScalarType.STRING && scalarType != descriptors_ScalarType.BYTES;
+    return (message, reader, ctx, wireType) => {
+        const items = message[localName];
+        if (wireType == WireType.LengthDelimited && packedPossible) {
+            const end = reader.uint32() + reader.pos;
+            while (reader.pos < end) {
+                items.push(readScalar(reader));
+            }
+        }
+        else {
+            items.push(readScalar(reader));
+        }
+    };
+}
+function compileMapFieldReader(field) {
+    const localName = field.localName;
+    const readKey = compileScalarReader(field.mapKey, field.utf8Validation, false);
+    const keyZero = scalarZeroValue(field.mapKey, false);
+    let readValue;
+    let valueDefault;
+    switch (field.mapKind) {
+        case "scalar": {
+            const scalar = field.scalar;
+            const readScalar = compileScalarReader(scalar, field.utf8Validation, false);
+            readValue = (reader) => readScalar(reader);
+            // Bytes zero values are created per entry, so that entries do not share
+            // one instance.
+            if (scalar == descriptors_ScalarType.BYTES) {
+                valueDefault = () => new Uint8Array(0);
+            }
+            else {
+                const zero = scalarZeroValue(scalar, false);
+                valueDefault = () => zero;
             }
             break;
-        case "message":
-            message.set(field, readMessageField(reader, options, field, message.get(field)));
+        }
+        case "enum": {
+            const zero = field.enum.values[0].number;
+            readValue = (reader) => reader.int32();
+            valueDefault = () => zero;
             break;
-        case "list":
-            readListField(reader, wireType, message.get(field), options);
+        }
+        case "message": {
+            const { toMessage, toLocal } = localMessageMapper(field);
+            const readChild = compiledReader(field.message).read;
+            // A repeated value field within one entry merges into the previous
+            // value, like any other singular message field.
+            readValue = (reader, ctx, existing) => {
+                const child = toMessage(existing);
+                readChild(child, reader, ctx, reader.uint32());
+                return toLocal(child);
+            };
+            valueDefault = () => toLocal(toMessage(undefined));
             break;
-        case "map":
-            readMapEntry(reader, message.get(field), options);
-            break;
-    }
-}
-// Read a map field, expecting key field = 1, value field = 2
-function readMapEntry(reader, map, options) {
-    const field = map.field();
-    let key;
-    let val;
-    // Read the length of the map entry, which is a varint.
-    const len = reader.uint32();
-    // WARNING: Calculate end AFTER advancing reader.pos (above), so that
-    //          reader.pos is at the start of the map entry.
-    const end = reader.pos + len;
-    while (reader.pos < end) {
-        const [fieldNo] = reader.tag();
-        switch (fieldNo) {
-            case 1:
-                key = readScalar(reader, field.mapKey);
-                break;
-            case 2:
-                switch (field.mapKind) {
-                    case "scalar":
-                        val = readScalar(reader, field.scalar);
-                        break;
-                    case "enum":
-                        val = reader.int32();
-                        break;
-                    case "message":
-                        val = readMessageField(reader, options, field);
-                        break;
-                }
-                break;
         }
     }
-    if (key === undefined) {
-        key = scalarZeroValue(field.mapKey, false);
-    }
-    if (val === undefined) {
-        switch (field.mapKind) {
-            case "scalar":
-                val = scalarZeroValue(field.scalar, false);
-                break;
-            case "enum":
-                val = field.enum.values[0].number;
-                break;
-            case "message":
-                val = reflect_reflect(field.message, undefined, false);
-                break;
+    return (message, reader, ctx) => {
+        const record = message[localName];
+        let key;
+        let val;
+        // Read the length of the map entry, which is a varint.
+        const len = reader.uint32();
+        // Calculate end AFTER advancing reader.pos (above), so that reader.pos is
+        // at the start of the map entry.
+        const end = reader.pos + len;
+        while (reader.pos < end) {
+            // Map entries have the key in field 1, and the value in field 2.
+            const [fieldNo] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = readKey(reader);
+                    break;
+                case 2:
+                    val = readValue(reader, ctx, val);
+                    break;
+            }
         }
-    }
-    map.set(key, val);
+        if (key === undefined) {
+            key = keyZero;
+        }
+        if (val === undefined) {
+            val = valueDefault();
+        }
+        // Map keys may be booleans, numbers, or bigints. Object keys are strings, so
+        // they are converted implicitly. setOwn() is needed because a key can be
+        // "__proto__".
+        setOwn(record, key, val);
+    };
 }
-function readListField(reader, wireType, list, options) {
-    var _a;
-    const field = list.field();
-    if (field.listKind === "message") {
-        list.add(readMessageField(reader, options, field));
-        return;
-    }
-    const scalarType = (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32;
-    const packed = wireType == WireType.LengthDelimited &&
-        scalarType != descriptors_ScalarType.STRING &&
-        scalarType != descriptors_ScalarType.BYTES;
-    if (!packed) {
-        list.add(readScalar(reader, scalarType));
-        return;
-    }
-    const e = reader.uint32() + reader.pos;
-    while (reader.pos < e) {
-        list.add(readScalar(reader, scalarType));
-    }
-}
-function readMessageField(reader, options, field, mergeMessage) {
-    const delimited = field.delimitedEncoding;
-    const message = mergeMessage !== null && mergeMessage !== void 0 ? mergeMessage : reflect_reflect(field.message, undefined, false);
-    readMessage(message, reader, options, delimited, delimited ? field.number : reader.uint32());
-    return message;
-}
-function readScalar(reader, type) {
+/**
+ * Returns a reader for a scalar value. For 64-bit integers, BinaryReader
+ * already returns the local representation (bigint or string), so, unlike in
+ * the reflection layer, no validation is needed here.
+ */
+function compileScalarReader(type, utf8Validation, longAsString) {
     switch (type) {
         case descriptors_ScalarType.STRING:
-            return reader.string();
+            return (reader) => reader.string(utf8Validation);
         case descriptors_ScalarType.BOOL:
-            return reader.bool();
+            return (reader) => reader.bool();
         case descriptors_ScalarType.DOUBLE:
-            return reader.double();
+            return (reader) => reader.double();
         case descriptors_ScalarType.FLOAT:
-            return reader.float();
+            return (reader) => reader.float();
         case descriptors_ScalarType.INT32:
-            return reader.int32();
+            return (reader) => reader.int32();
         case descriptors_ScalarType.INT64:
-            return reader.int64();
+            if (longAsString) {
+                return (reader) => String(reader.int64());
+            }
+            return (reader) => reader.int64();
         case descriptors_ScalarType.UINT64:
-            return reader.uint64();
+            if (longAsString) {
+                return (reader) => String(reader.uint64());
+            }
+            return (reader) => reader.uint64();
         case descriptors_ScalarType.FIXED64:
-            return reader.fixed64();
+            if (longAsString) {
+                return (reader) => String(reader.fixed64());
+            }
+            return (reader) => reader.fixed64();
         case descriptors_ScalarType.BYTES:
-            return reader.bytes();
+            return (reader) => reader.bytes();
         case descriptors_ScalarType.FIXED32:
-            return reader.fixed32();
+            return (reader) => reader.fixed32();
         case descriptors_ScalarType.SFIXED32:
-            return reader.sfixed32();
+            return (reader) => reader.sfixed32();
         case descriptors_ScalarType.SFIXED64:
-            return reader.sfixed64();
+            if (longAsString) {
+                return (reader) => String(reader.sfixed64());
+            }
+            return (reader) => reader.sfixed64();
         case descriptors_ScalarType.SINT64:
-            return reader.sint64();
+            if (longAsString) {
+                return (reader) => String(reader.sint64());
+            }
+            return (reader) => reader.sint64();
         case descriptors_ScalarType.UINT32:
-            return reader.uint32();
+            return (reader) => reader.uint32();
         case descriptors_ScalarType.SINT32:
-            return reader.sint32();
+            return (reader) => reader.sint32();
     }
 }
 
@@ -58798,7 +59168,7 @@ function fileDesc(b64, imports) {
     return reg.getFile(root.name);
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/any_pb.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/google/protobuf/any_pb.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -58841,7 +59211,12 @@ const AnySchema = /*@__PURE__*/ message_messageDesc(file_google_protobuf_any, 0)
 
 
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+
+
+
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
+const to_binary_IMPLICIT = 2;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const to_binary_LEGACY_REQUIRED = 3;
 // Default options for serializing binary data.
 const writeDefaults = {
@@ -58851,157 +59226,390 @@ function makeWriteOptions(options) {
     return options ? Object.assign(Object.assign({}, writeDefaults), options) : writeDefaults;
 }
 function to_binary_toBinary(schema, message, options) {
-    return writeFields(new BinaryWriter(), makeWriteOptions(options), reflect_reflect(schema, message)).finish();
+    const writer = new BinaryWriter();
+    compiledWriter(schema)(writer, makeWriteOptions(options), message);
+    return writer.finish();
 }
-function writeFields(writer, opts, msg) {
-    var _a;
-    for (const f of msg.sortedFields) {
-        if (!msg.isSet(f)) {
-            if (f.presence == to_binary_LEGACY_REQUIRED) {
-                throw new Error(`cannot encode ${f} to binary: required field not set`);
+const compiledWriters = new WeakMap();
+/**
+ * Return the compiled encoder for a message, compiling it on first use.
+ */
+function compiledWriter(desc) {
+    let compiled = compiledWriters.get(desc);
+    if (compiled === undefined) {
+        compiled = to_binary_compileMessage(desc);
+    }
+    return compiled;
+}
+function to_binary_compileMessage(desc) {
+    const typeName = desc.typeName;
+    const sortedFields = desc.fields.concat().sort((a, b) => a.number - b.number);
+    // The field reported in ForeignFieldError.
+    const foreignField = sortedFields[0];
+    const fieldWriters = [];
+    const compiled = (writer, opts, message) => {
+        if (message.$typeName !== typeName && foreignField !== undefined) {
+            throw new error_FieldError(foreignField, `cannot use ${foreignField} with message ${message.$typeName}`, "ForeignFieldError");
+        }
+        for (let i = 0; i < fieldWriters.length; i++) {
+            fieldWriters[i](writer, opts, message);
+        }
+        const unknown = message.$unknown;
+        if (unknown !== undefined && opts.writeUnknownFields) {
+            for (let i = 0; i < unknown.length; i++) {
+                const { no, wireType, data } = unknown[i];
+                writer.tag(no, wireType).raw(data);
             }
-            continue;
         }
-        writeField(writer, opts, msg, f);
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    compiledWriters.set(desc, compiled);
+    for (const field of sortedFields) {
+        fieldWriters.push(compileField(field));
     }
-    if (opts.writeUnknownFields) {
-        for (const { no, wireType, data } of (_a = msg.getUnknown()) !== null && _a !== void 0 ? _a : []) {
-            writer.tag(no, wireType).raw(data);
-        }
+    return compiled;
+}
+function compileField(field) {
+    switch (field.fieldKind) {
+        case "message":
+        case "scalar":
+        case "enum":
+            return compileSingularField(field);
+        case "list":
+            return compileListField(field);
+        case "map":
+            return compileMapField(field);
     }
-    return writer;
 }
 /**
+ * Compile an encoder for a singular field: the presence check, and the
+ * value encoder.
+ */
+function compileSingularField(field) {
+    const writeValue = compileSingularValue(field);
+    const localName = field.localName;
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (writer, opts, message) => {
+            const oneof = message[oneofLocalName];
+            if (oneof.case === localName) {
+                writeValue(writer, opts, oneof.value);
+            }
+        };
+    }
+    if (field.presence != to_binary_IMPLICIT) {
+        const requiredError = field.presence == to_binary_LEGACY_REQUIRED
+            ? `cannot encode ${field} to binary: required field not set`
+            : undefined;
+        return (writer, opts, message) => {
+            const value = message[localName];
+            // Fields with explicit presence have properties on the prototype
+            // chain for default / zero values (except for proto3).
+            if (value !== undefined &&
+                Object.prototype.hasOwnProperty.call(message, localName)) {
+                writeValue(writer, opts, value);
+            }
+            else if (requiredError !== undefined) {
+                throw new Error(requiredError);
+            }
+        };
+    }
+    // Implicit presence: the field is set when the value is not the zero
+    // value. The check is inlined per type, see isScalarZeroValue.
+    if (field.fieldKind == "enum") {
+        const zero = field.enum.values[0].number;
+        return (writer, opts, message) => {
+            const value = message[localName];
+            if (value !== zero) {
+                writeValue(writer, opts, value);
+            }
+        };
+    }
+    switch (field.scalar) {
+        case descriptors_ScalarType.BOOL:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                if (value !== false) {
+                    writeValue(writer, opts, value);
+                }
+            };
+        case descriptors_ScalarType.STRING:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                if (value !== "") {
+                    writeValue(writer, opts, value);
+                }
+            };
+        case descriptors_ScalarType.BYTES:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                if (!(value instanceof Uint8Array) || value.byteLength > 0) {
+                    writeValue(writer, opts, value);
+                }
+            };
+        case descriptors_ScalarType.DOUBLE:
+        case descriptors_ScalarType.FLOAT:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                // Object.is distinguishes -0 from 0.
+                if (!Object.is(value, 0)) {
+                    writeValue(writer, opts, value);
+                }
+            };
+        default:
+            return (writer, opts, message) => {
+                const value = message[localName];
+                // Loose comparison matches 0n, 0 and "0".
+                if (value != 0) {
+                    writeValue(writer, opts, value);
+                }
+            };
+    }
+}
+/**
+ * Compile an encoder for the value of a singular field, including the tag.
+ */
+function compileSingularValue(field) {
+    switch (field.fieldKind) {
+        case "message": {
+            const { toMessage } = localMessageMapper(field);
+            const writeChild = compileChildWriter(field);
+            return (writer, opts, value) => {
+                writeChild(writer, opts, toMessage(value));
+            };
+        }
+        case "scalar":
+        case "enum": {
+            const scalarType = field.fieldKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+            const fieldNo = field.number;
+            const wireType = writeTypeOfScalar(scalarType);
+            const writeScalar = compileScalarValue(scalarType, field.parent.typeName, field.name);
+            return (writer, opts, value) => {
+                writer.tag(fieldNo, wireType);
+                writeScalar(writer, value);
+            };
+        }
+    }
+}
+function compileListField(field) {
+    const localName = field.localName;
+    const fieldNo = field.number;
+    switch (field.listKind) {
+        case "message": {
+            const { toMessage } = localMessageMapper(field);
+            const writeChild = compileChildWriter(field);
+            return (writer, opts, message) => {
+                const items = message[localName];
+                for (let i = 0; i < items.length; i++) {
+                    writeChild(writer, opts, toMessage(items[i]));
+                }
+            };
+        }
+        case "scalar":
+        case "enum": {
+            const scalarType = field.listKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+            const writeScalar = compileScalarValue(scalarType, field.parent.typeName, field.name);
+            if (field.packed) {
+                return (writer, opts, message) => {
+                    const items = message[localName];
+                    if (items.length == 0) {
+                        return;
+                    }
+                    writer.tag(fieldNo, WireType.LengthDelimited).fork();
+                    for (let i = 0; i < items.length; i++) {
+                        writeScalar(writer, items[i]);
+                    }
+                    writer.join();
+                };
+            }
+            const wireType = writeTypeOfScalar(scalarType);
+            return (writer, opts, message) => {
+                const items = message[localName];
+                for (let i = 0; i < items.length; i++) {
+                    writer.tag(fieldNo, wireType);
+                    writeScalar(writer, items[i]);
+                }
+            };
+        }
+    }
+}
+function compileMapField(field) {
+    const localName = field.localName;
+    const fieldNo = field.number;
+    const writeKey = compileMapKey(field);
+    if (field.mapKind == "message") {
+        const { toMessage } = localMessageMapper(field);
+        const writeMessage = compiledWriter(field.message);
+        return (writer, opts, message) => {
+            const record = message[localName];
+            const keys = Object.keys(record);
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                writer.tag(fieldNo, WireType.LengthDelimited).fork();
+                writeKey(writer, key);
+                // The value of a map entry is always field number 2.
+                writer.tag(2, WireType.LengthDelimited).fork();
+                writeMessage(writer, opts, toMessage(record[key]));
+                writer.join();
+                writer.join();
+            }
+        };
+    }
+    const scalarType = field.mapKind == "enum" ? descriptors_ScalarType.INT32 : field.scalar;
+    const valueWireType = writeTypeOfScalar(scalarType);
+    const writeScalar = compileScalarValue(scalarType, field.parent.typeName, field.name);
+    return (writer, opts, message) => {
+        const record = message[localName];
+        const keys = Object.keys(record);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            writer.tag(fieldNo, WireType.LengthDelimited).fork();
+            writeKey(writer, key);
+            // The value of a map entry is always field number 2.
+            writer.tag(2, valueWireType);
+            writeScalar(writer, record[key]);
+            writer.join();
+        }
+    };
+}
+/**
+ * Compile an encoder for a map key. Map keys are stored as object keys and
+ * are always strings locally. Convert them to their scalar type before
+ * writing, like the reflect API does when iterating map entries.
+ */
+function compileMapKey(field) {
+    const wireType = writeTypeOfScalar(field.mapKey);
+    const writeScalar = compileScalarValue(field.mapKey, field.parent.typeName, field.name);
+    const convertKey = compileMapKeyConverter(field.mapKey);
+    return (writer, key) => {
+        // The key of a map entry is always field number 1.
+        writer.tag(1, wireType);
+        writeScalar(writer, convertKey(key));
+    };
+}
+/**
+ * Returns a converter from an object key (always a string) to the closest
+ * possible type for the map key type. Invalid keys are passed through to
+ * the scalar writer, which raises an error for them.
+ */
+function compileMapKeyConverter(type) {
+    switch (type) {
+        case descriptors_ScalarType.STRING:
+            return (key) => key;
+        case descriptors_ScalarType.BOOL:
+            return (key) => (key === "true" ? true : key === "false" ? false : key);
+        case descriptors_ScalarType.UINT64:
+        case descriptors_ScalarType.FIXED64:
+            return (key) => {
+                try {
+                    return protoInt64.uParse(key);
+                }
+                catch (_a) {
+                    return key;
+                }
+            };
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            return (key) => {
+                try {
+                    return protoInt64.parse(key);
+                }
+                catch (_a) {
+                    return key;
+                }
+            };
+        default:
+            // Handles INT32, UINT32, SINT32, FIXED32, SFIXED32.
+            // We do not use individual cases to save a few bytes code size.
+            return (key) => {
+                const n = Number.parseInt(key);
+                return Number.isFinite(n) ? n : key;
+            };
+    }
+}
+/**
+ * Compile an encoder for a bare scalar value (no tag), wrapping errors from
+ * the writer with the message and field name.
+ */
+function compileScalarValue(type, messageName, fieldName) {
+    const writeScalar = compileScalarWrite(type);
+    return (writer, value) => {
+        try {
+            writeScalar(writer, value);
+        }
+        catch (e) {
+            if (e instanceof Error) {
+                throw new Error(`cannot encode field ${messageName}.${fieldName} to binary: ${e.message}`);
+            }
+            throw e;
+        }
+    };
+}
+function compileScalarWrite(type) {
+    switch (type) {
+        case descriptors_ScalarType.STRING:
+            return (writer, value) => writer.string(value);
+        case descriptors_ScalarType.BOOL:
+            return (writer, value) => writer.bool(value);
+        case descriptors_ScalarType.DOUBLE:
+            return (writer, value) => writer.double(value);
+        case descriptors_ScalarType.FLOAT:
+            return (writer, value) => writer.float(value);
+        case descriptors_ScalarType.INT32:
+            return (writer, value) => writer.int32(value);
+        case descriptors_ScalarType.INT64:
+            return (writer, value) => writer.int64(value);
+        case descriptors_ScalarType.UINT64:
+            return (writer, value) => writer.uint64(value);
+        case descriptors_ScalarType.FIXED64:
+            return (writer, value) => writer.fixed64(value);
+        case descriptors_ScalarType.BYTES:
+            return (writer, value) => writer.bytes(value);
+        case descriptors_ScalarType.FIXED32:
+            return (writer, value) => writer.fixed32(value);
+        case descriptors_ScalarType.SFIXED32:
+            return (writer, value) => writer.sfixed32(value);
+        case descriptors_ScalarType.SFIXED64:
+            return (writer, value) => writer.sfixed64(value);
+        case descriptors_ScalarType.SINT64:
+            return (writer, value) => writer.sint64(value);
+        case descriptors_ScalarType.UINT32:
+            return (writer, value) => writer.uint32(value);
+        case descriptors_ScalarType.SINT32:
+            return (writer, value) => writer.sint32(value);
+    }
+}
+/**
+ * Write a single field to binary format, if it is set. Used to serialize
+ * extensions: extensions always have explicit presence, so an extension
+ * value that was just set on the container is always written.
+ *
  * @private
  */
 function writeField(writer, opts, msg, field) {
-    var _a;
-    switch (field.fieldKind) {
-        case "scalar":
-        case "enum":
-            writeScalar(writer, msg.desc.typeName, field.name, (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32, field.number, msg.get(field));
-            break;
-        case "list":
-            writeListField(writer, opts, field, msg.get(field));
-            break;
-        case "message":
-            writeMessageField(writer, opts, field, msg.get(field));
-            break;
-        case "map":
-            for (const [key, val] of msg.get(field)) {
-                writeMapEntry(writer, opts, field, key, val);
-            }
-            break;
-    }
+    compileField(field)(writer, opts, msg[unsafeLocal]);
 }
-function writeScalar(writer, msgName, fieldName, scalarType, fieldNo, value) {
-    writeScalarValue(writer.tag(fieldNo, writeTypeOfScalar(scalarType)), msgName, fieldName, scalarType, value);
-}
-function writeMessageField(writer, opts, field, message) {
+/**
+ * Compile an encoder for the wire format of a message field, honoring the
+ * delimited encoding of the field. The tag is written by the encoder.
+ */
+function compileChildWriter(field) {
+    const fieldNo = field.number;
+    const writeMessage = compiledWriter(field.message);
     if (field.delimitedEncoding) {
-        writeFields(writer.tag(field.number, WireType.StartGroup), opts, message).tag(field.number, WireType.EndGroup);
+        return (writer, opts, child) => {
+            writer.tag(fieldNo, WireType.StartGroup);
+            writeMessage(writer, opts, child);
+            writer.tag(fieldNo, WireType.EndGroup);
+        };
     }
-    else {
-        writeFields(writer.tag(field.number, WireType.LengthDelimited).fork(), opts, message).join();
-    }
-}
-function writeListField(writer, opts, field, list) {
-    var _a;
-    if (field.listKind == "message") {
-        for (const item of list) {
-            writeMessageField(writer, opts, field, item);
-        }
-        return;
-    }
-    const scalarType = (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32;
-    if (field.packed) {
-        if (!list.size) {
-            return;
-        }
-        writer.tag(field.number, WireType.LengthDelimited).fork();
-        for (const item of list) {
-            writeScalarValue(writer, field.parent.typeName, field.name, scalarType, item);
-        }
+    return (writer, opts, child) => {
+        writer.tag(fieldNo, WireType.LengthDelimited).fork();
+        writeMessage(writer, opts, child);
         writer.join();
-        return;
-    }
-    for (const item of list) {
-        writeScalar(writer, field.parent.typeName, field.name, scalarType, field.number, item);
-    }
-}
-function writeMapEntry(writer, opts, field, key, value) {
-    var _a;
-    writer.tag(field.number, WireType.LengthDelimited).fork();
-    // write key, expecting key field number = 1
-    writeScalar(writer, field.parent.typeName, field.name, field.mapKey, 1, key);
-    // write value, expecting value field number = 2
-    switch (field.mapKind) {
-        case "scalar":
-        case "enum":
-            writeScalar(writer, field.parent.typeName, field.name, (_a = field.scalar) !== null && _a !== void 0 ? _a : descriptors_ScalarType.INT32, 2, value);
-            break;
-        case "message":
-            writeFields(writer.tag(2, WireType.LengthDelimited).fork(), opts, value).join();
-            break;
-    }
-    writer.join();
-}
-function writeScalarValue(writer, msgName, fieldName, type, value) {
-    try {
-        switch (type) {
-            case descriptors_ScalarType.STRING:
-                writer.string(value);
-                break;
-            case descriptors_ScalarType.BOOL:
-                writer.bool(value);
-                break;
-            case descriptors_ScalarType.DOUBLE:
-                writer.double(value);
-                break;
-            case descriptors_ScalarType.FLOAT:
-                writer.float(value);
-                break;
-            case descriptors_ScalarType.INT32:
-                writer.int32(value);
-                break;
-            case descriptors_ScalarType.INT64:
-                writer.int64(value);
-                break;
-            case descriptors_ScalarType.UINT64:
-                writer.uint64(value);
-                break;
-            case descriptors_ScalarType.FIXED64:
-                writer.fixed64(value);
-                break;
-            case descriptors_ScalarType.BYTES:
-                writer.bytes(value);
-                break;
-            case descriptors_ScalarType.FIXED32:
-                writer.fixed32(value);
-                break;
-            case descriptors_ScalarType.SFIXED32:
-                writer.sfixed32(value);
-                break;
-            case descriptors_ScalarType.SFIXED64:
-                writer.sfixed64(value);
-                break;
-            case descriptors_ScalarType.SINT64:
-                writer.sint64(value);
-                break;
-            case descriptors_ScalarType.UINT32:
-                writer.uint32(value);
-                break;
-            case descriptors_ScalarType.SINT32:
-                writer.sint32(value);
-                break;
-        }
-    }
-    catch (e) {
-        if (e instanceof Error) {
-            throw new Error(`cannot encode field ${msgName}.${fieldName} to binary: ${e.message}`);
-        }
-        throw e;
-    }
+    };
 }
 function writeTypeOfScalar(type) {
     switch (type) {
@@ -59092,7 +59700,7 @@ function typeUrlToName(url) {
     return name;
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/struct_pb.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/google/protobuf/struct_pb.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -59129,10 +59737,15 @@ const ValueSchema = /*@__PURE__*/ message_messageDesc(file_google_protobuf_struc
  */
 const ListValueSchema = /*@__PURE__*/ message_messageDesc(file_google_protobuf_struct, 2);
 /**
- * `NullValue` is a singleton enumeration to represent the null value for the
- * `Value` type union.
+ * Represents a JSON `null`.
  *
- * The JSON representation for `NullValue` is JSON `null`.
+ * `NullValue` is a sentinel, using an enum with only one value to represent
+ * the null value for the `Value` type union.
+ *
+ * A field of type `NullValue` with any value other than `0` is considered
+ * invalid. Most ProtoJSON serializers will emit a `Value` with a `null_value`
+ * set as a JSON `null` regardless of the integer value, and so will round trip
+ * to a `0` value.
  *
  * @generated from enum google.protobuf.NullValue
  */
@@ -59149,6 +59762,472 @@ var NullValue;
  * Describes the enum google.protobuf.NullValue.
  */
 const NullValueSchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (enumDesc(file_google_protobuf_struct, 0)));
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/reflect/reflect.js
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+
+
+
+
+
+
+
+/**
+ * Create a ReflectMessage.
+ */
+function reflect(messageDesc, message, 
+/**
+ * By default, field values are validated when setting them. For example,
+ * a value for an uint32 field must be a ECMAScript Number >= 0.
+ *
+ * When field values are trusted, performance can be improved by disabling
+ * checks.
+ */
+check = true) {
+    return new ReflectMessageImpl(messageDesc, message, check);
+}
+const messageSortedFields = new WeakMap();
+class ReflectMessageImpl {
+    get sortedFields() {
+        const cached = messageSortedFields.get(this.desc);
+        if (cached) {
+            return cached;
+        }
+        const sortedFields = this.desc.fields
+            .concat()
+            .sort((a, b) => a.number - b.number);
+        messageSortedFields.set(this.desc, sortedFields);
+        return sortedFields;
+    }
+    constructor(messageDesc, message, check = true) {
+        this.lists = new Map();
+        this.maps = new Map();
+        this.check = check;
+        this.desc = messageDesc;
+        this.message = this[unsafeLocal] = message !== null && message !== void 0 ? message : create_create(messageDesc);
+        this.fields = messageDesc.fields;
+        this.oneofs = messageDesc.oneofs;
+        this.members = messageDesc.members;
+    }
+    findNumber(number) {
+        if (!this._fieldsByNumber) {
+            this._fieldsByNumber = new Map(this.desc.fields.map((f) => [f.number, f]));
+        }
+        return this._fieldsByNumber.get(number);
+    }
+    oneofCase(oneof) {
+        assertOwn(this.message, oneof);
+        return unsafeOneofCase(this.message, oneof);
+    }
+    isSet(field) {
+        assertOwn(this.message, field);
+        return unsafeIsSet(this.message, field);
+    }
+    clear(field) {
+        assertOwn(this.message, field);
+        unsafeClear(this.message, field);
+    }
+    get(field) {
+        assertOwn(this.message, field);
+        const value = unsafeGet(this.message, field);
+        switch (field.fieldKind) {
+            case "list":
+                // eslint-disable-next-line no-case-declarations
+                let list = this.lists.get(field);
+                if (!list || list[unsafeLocal] !== value) {
+                    this.lists.set(field, 
+                    // biome-ignore lint/suspicious/noAssignInExpressions: no
+                    (list = new ReflectListImpl(field, value, this.check)));
+                }
+                return list;
+            case "map":
+                let map = this.maps.get(field);
+                if (!map || map[unsafeLocal] !== value) {
+                    this.maps.set(field, 
+                    // biome-ignore lint/suspicious/noAssignInExpressions: no
+                    (map = new ReflectMapImpl(field, value, this.check)));
+                }
+                return map;
+            case "message":
+                return messageToReflect(field, value, this.check);
+            case "scalar":
+                return (value === undefined
+                    ? scalarZeroValue(field.scalar, false)
+                    : longToReflect(field, value));
+            case "enum":
+                return (value !== null && value !== void 0 ? value : field.enum.values[0].number);
+        }
+    }
+    set(field, value) {
+        assertOwn(this.message, field);
+        if (this.check) {
+            const err = checkField(field, value);
+            if (err) {
+                throw err;
+            }
+        }
+        let local;
+        if (field.fieldKind == "message") {
+            local = messageToLocal(field, value);
+        }
+        else if (isReflectMap(value) || isReflectList(value)) {
+            local = value[unsafeLocal];
+        }
+        else {
+            local = longToLocal(field, value);
+        }
+        unsafeSet(this.message, field, local);
+    }
+    getUnknown() {
+        return this.message.$unknown;
+    }
+    setUnknown(value) {
+        this.message.$unknown = value;
+    }
+}
+function assertOwn(owner, member) {
+    if (member.parent.typeName !== owner.$typeName) {
+        throw new error_FieldError(member, `cannot use ${member.toString()} with message ${owner.$typeName}`, "ForeignFieldError");
+    }
+}
+/**
+ * Create a ReflectList.
+ */
+function reflectList(field, unsafeInput, 
+/**
+ * By default, field values are validated when setting them. For example,
+ * a value for an uint32 field must be a ECMAScript Number >= 0.
+ *
+ * When field values are trusted, performance can be improved by disabling
+ * checks.
+ */
+check = true) {
+    return new ReflectListImpl(field, unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : [], check);
+}
+class ReflectListImpl {
+    field() {
+        return this._field;
+    }
+    get size() {
+        return this._arr.length;
+    }
+    constructor(field, unsafeInput, check) {
+        this._field = field;
+        this._arr = this[unsafeLocal] = unsafeInput;
+        this.check = check;
+    }
+    get(index) {
+        const item = this._arr[index];
+        return item === undefined
+            ? undefined
+            : listItemToReflect(this._field, item, this.check);
+    }
+    set(index, item) {
+        if (index < 0 || index >= this._arr.length) {
+            throw new error_FieldError(this._field, `list item #${index + 1}: out of range`);
+        }
+        if (this.check) {
+            const err = checkListItem(this._field, index, item);
+            if (err) {
+                throw err;
+            }
+        }
+        this._arr[index] = listItemToLocal(this._field, item);
+    }
+    add(item) {
+        if (this.check) {
+            const err = checkListItem(this._field, this._arr.length, item);
+            if (err) {
+                throw err;
+            }
+        }
+        this._arr.push(listItemToLocal(this._field, item));
+        return undefined;
+    }
+    clear() {
+        this._arr.splice(0, this._arr.length);
+    }
+    [Symbol.iterator]() {
+        return this.values();
+    }
+    keys() {
+        return this._arr.keys();
+    }
+    *values() {
+        for (const item of this._arr) {
+            yield listItemToReflect(this._field, item, this.check);
+        }
+    }
+    *entries() {
+        for (let i = 0; i < this._arr.length; i++) {
+            yield [i, listItemToReflect(this._field, this._arr[i], this.check)];
+        }
+    }
+}
+/**
+ * Create a ReflectMap.
+ */
+function reflectMap(field, unsafeInput, 
+/**
+ * By default, field values are validated when setting them. For example,
+ * a value for an uint32 field must be a ECMAScript Number >= 0.
+ *
+ * When field values are trusted, performance can be improved by disabling
+ * checks.
+ */
+check = true) {
+    return new ReflectMapImpl(field, unsafeInput, check);
+}
+class ReflectMapImpl {
+    constructor(field, unsafeInput, check = true) {
+        this.obj = this[unsafeLocal] = unsafeInput !== null && unsafeInput !== void 0 ? unsafeInput : {};
+        this.check = check;
+        this._field = field;
+    }
+    field() {
+        return this._field;
+    }
+    set(key, value) {
+        if (this.check) {
+            const err = checkMapEntry(this._field, key, value);
+            if (err) {
+                throw err;
+            }
+        }
+        setOwn(this.obj, mapKeyToLocal(key), mapValueToLocal(this._field, value));
+        return this;
+    }
+    delete(key) {
+        const k = mapKeyToLocal(key);
+        const has = Object.prototype.hasOwnProperty.call(this.obj, k);
+        if (has) {
+            delete this.obj[k];
+        }
+        return has;
+    }
+    clear() {
+        for (const key of Object.keys(this.obj)) {
+            delete this.obj[key];
+        }
+    }
+    get(key) {
+        let val = getOwn(this.obj, mapKeyToLocal(key));
+        if (val !== undefined) {
+            val = mapValueToReflect(this._field, val, this.check);
+        }
+        return val;
+    }
+    has(key) {
+        return Object.prototype.hasOwnProperty.call(this.obj, mapKeyToLocal(key));
+    }
+    *keys() {
+        for (const objKey of Object.keys(this.obj)) {
+            yield mapKeyToReflect(objKey, this._field.mapKey);
+        }
+    }
+    *entries() {
+        for (const objEntry of Object.entries(this.obj)) {
+            yield [
+                mapKeyToReflect(objEntry[0], this._field.mapKey),
+                mapValueToReflect(this._field, objEntry[1], this.check),
+            ];
+        }
+    }
+    [Symbol.iterator]() {
+        return this.entries();
+    }
+    get size() {
+        return Object.keys(this.obj).length;
+    }
+    *values() {
+        for (const val of Object.values(this.obj)) {
+            yield mapValueToReflect(this._field, val, this.check);
+        }
+    }
+    forEach(callbackfn, thisArg) {
+        for (const mapEntry of this.entries()) {
+            callbackfn.call(thisArg, mapEntry[1], mapEntry[0], this);
+        }
+    }
+}
+function messageToLocal(field, value) {
+    if (!isReflectMessage(value)) {
+        return value;
+    }
+    if (isWrapper(value.message) &&
+        !field.oneof &&
+        field.fieldKind == "message") {
+        // Types from google/protobuf/wrappers.proto are unwrapped when used in
+        // a singular field that is not part of a oneof group.
+        return value.message.value;
+    }
+    if (value.desc.typeName == "google.protobuf.Struct" &&
+        field.parent.typeName != "google.protobuf.Value") {
+        // google.protobuf.Struct is represented with JsonObject when used in a
+        // field, except when used in google.protobuf.Value.
+        return wktStructToLocal(value.message);
+    }
+    return value.message;
+}
+function messageToReflect(field, value, check) {
+    if (value !== undefined) {
+        if (isWrapperDesc(field.message) &&
+            !field.oneof &&
+            field.fieldKind == "message") {
+            // Types from google/protobuf/wrappers.proto are unwrapped when used in
+            // a singular field that is not part of a oneof group.
+            value = {
+                $typeName: field.message.typeName,
+                value: longToReflect(field.message.fields[0], value),
+            };
+        }
+        else if (field.message.typeName == "google.protobuf.Struct" &&
+            field.parent.typeName != "google.protobuf.Value" &&
+            guard_isObject(value)) {
+            // google.protobuf.Struct is represented with JsonObject when used in a
+            // field, except when used in google.protobuf.Value.
+            value = wktStructToReflect(value);
+        }
+    }
+    return new ReflectMessageImpl(field.message, value, check);
+}
+function listItemToLocal(field, value) {
+    if (field.listKind == "message") {
+        return messageToLocal(field, value);
+    }
+    return longToLocal(field, value);
+}
+function listItemToReflect(field, value, check) {
+    if (field.listKind == "message") {
+        return messageToReflect(field, value, check);
+    }
+    return longToReflect(field, value);
+}
+function mapValueToLocal(field, value) {
+    if (field.mapKind == "message") {
+        return messageToLocal(field, value);
+    }
+    return longToLocal(field, value);
+}
+function mapValueToReflect(field, value, check) {
+    if (field.mapKind == "message") {
+        return messageToReflect(field, value, check);
+    }
+    return value;
+}
+function mapKeyToLocal(key) {
+    return typeof key == "string" || typeof key == "number" ? key : String(key);
+}
+/**
+ * Converts a map key (any scalar value except float, double, or bytes) from its
+ * representation in a message (string or number, the only possible object key
+ * types) to the closest possible type in ECMAScript.
+ */
+function mapKeyToReflect(key, type) {
+    switch (type) {
+        case descriptors_ScalarType.STRING:
+            return key;
+        case descriptors_ScalarType.INT32:
+        case descriptors_ScalarType.FIXED32:
+        case descriptors_ScalarType.UINT32:
+        case descriptors_ScalarType.SFIXED32:
+        case descriptors_ScalarType.SINT32: {
+            const n = Number.parseInt(key);
+            if (Number.isFinite(n)) {
+                return n;
+            }
+            break;
+        }
+        case descriptors_ScalarType.BOOL:
+            switch (key) {
+                case "true":
+                    return true;
+                case "false":
+                    return false;
+            }
+            break;
+        case descriptors_ScalarType.UINT64:
+        case descriptors_ScalarType.FIXED64:
+            try {
+                return protoInt64.uParse(key);
+            }
+            catch (_a) {
+                //
+            }
+            break;
+        default:
+            // INT64, SFIXED64, SINT64
+            try {
+                return protoInt64.parse(key);
+            }
+            catch (_b) {
+                //
+            }
+            break;
+    }
+    return key;
+}
+function longToReflect(field, value) {
+    switch (field.scalar) {
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            if ("longAsString" in field &&
+                field.longAsString &&
+                typeof value == "string") {
+                value = protoInt64.parse(value);
+            }
+            break;
+        case descriptors_ScalarType.FIXED64:
+        case descriptors_ScalarType.UINT64:
+            if ("longAsString" in field &&
+                field.longAsString &&
+                typeof value == "string") {
+                value = protoInt64.uParse(value);
+            }
+            break;
+    }
+    return value;
+}
+function longToLocal(field, value) {
+    switch (field.scalar) {
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            if ("longAsString" in field && field.longAsString) {
+                value = String(value);
+            }
+            else if (typeof value == "string" || typeof value == "number") {
+                value = protoInt64.parse(value);
+            }
+            break;
+        case descriptors_ScalarType.FIXED64:
+        case descriptors_ScalarType.UINT64:
+            if ("longAsString" in field && field.longAsString) {
+                value = String(value);
+            }
+            else if (typeof value == "string" || typeof value == "number") {
+                value = protoInt64.uParse(value);
+            }
+            break;
+    }
+    return value;
+}
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/extensions.js
 // Copyright 2021-2026 Buf Technologies, Inc.
@@ -59185,14 +60264,13 @@ const NullValueSchema = /*@__PURE__*/ (/* unused pure expression or super */ nul
  *
  * If the extension does not extend the given message, an error is raised.
  */
-function getExtension(message, extension) {
+function getExtension(message, extension, options) {
     assertExtendee(extension, message);
     const ufs = filterUnknownFields(message.$unknown, extension);
     const [container, field, get] = createExtensionContainer(extension);
+    const ctx = makeReadContext(options);
     for (const uf of ufs) {
-        readField(container, new binary_encoding_BinaryReader(uf.data), field, uf.wireType, {
-            readUnknownFields: true,
-        });
+        readField(container, new binary_encoding_BinaryReader(uf.data), field, uf.wireType, ctx);
     }
     return get();
 }
@@ -59290,7 +60368,7 @@ function createExtensionContainer(extension, value) {
     const desc = Object.assign(Object.assign({}, extension.extendee), { fields: [field], members: [field], oneofs: [] });
     const container = create_create(desc, value !== undefined ? { [localName]: value } : undefined);
     return [
-        reflect_reflect(desc, container),
+        reflect(desc, container),
         field,
         () => {
             const value = container[localName];
@@ -59311,6 +60389,49 @@ function assertExtendee(extension, message) {
         throw new Error(`extension ${extension.typeName} can only be applied to message ${extension.extendee.typeName}`);
     }
 }
+
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/json.js
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/**
+ * Minimum google.protobuf.Timestamp in milliseconds (inclusive).
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const timestampMsMin = /*@__PURE__*/ Date.parse("0001-01-01T00:00:00Z");
+/**
+ * Maximum google.protobuf.Timestamp in milliseconds (inclusive).
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const timestampMsMax = /*@__PURE__*/ Date.parse("9999-12-31T23:59:59Z");
+/**
+ * Minimum google.protobuf.Duration in seconds.
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const durationSecondsMin = -315576000000;
+/**
+ * Maximum google.protobuf.Duration in seconds.
+ * Only enforced in ProtoJSON.
+ *
+ * @private
+ */
+const durationSecondsMax = 315576000000;
 
 ;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/from-json.js
 // Copyright 2021-2026 Buf Technologies, Inc.
@@ -59336,62 +60457,75 @@ function assertExtendee(extension, message) {
 
 
 
-// Default options for parsing JSON.
-const jsonReadDefaults = {
-    ignoreUnknownFields: false,
-};
-function from_json_makeReadOptions(options) {
-    return options ? Object.assign(Object.assign({}, jsonReadDefaults), options) : jsonReadDefaults;
+
+
+
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
+const from_json_IMPLICIT = 2;
+function from_json_makeReadContext(options) {
+    return Object.assign(Object.assign({ ignoreUnknownFields: false, recursionLimit: 100 }, options), { depth: 0 });
 }
 /**
  * Parse a message from a JSON string.
+ *
+ * Duplicate keys are rejected.
  */
 function fromJsonString(schema, json, options) {
     return fromJson(schema, parseJsonString(json, schema.typeName), options);
 }
 /**
- * Parse a message from a JSON string, merging fields.
+ * Parse a message from a JSON string, merging fields into the target.
  *
  * Repeated fields are appended. Map entries are added, overwriting
  * existing keys.
  *
  * If a message field is already present, it will be merged with the
  * new data.
+ *
+ * Duplicate keys in the JSON are rejected, as in `fromJsonString`.
  */
 function mergeFromJsonString(schema, target, json, options) {
     return mergeFromJson(schema, target, parseJsonString(json, schema.typeName), options);
 }
 /**
  * Parse a message from a JSON value.
+ *
+ * Duplicate keys are rejected, but a value parsed by JSON.parse has already
+ * dropped duplicates (the last one wins). Use `fromJsonString` for strict
+ * duplicate-key checking.
  */
 function fromJson(schema, json, options) {
-    const msg = reflect_reflect(schema);
-    try {
-        from_json_readMessage(msg, json, from_json_makeReadOptions(options));
-    }
-    catch (e) {
-        if (error_isFieldError(e)) {
-            // @ts-expect-error we use the ES2022 error CTOR option "cause" for better stack traces
-            throw new Error(`cannot decode ${e.field()} from JSON: ${e.message}`, {
-                cause: e,
-            });
-        }
-        throw e;
-    }
-    return msg.message;
+    const message = create_create(schema);
+    readMessage(schema, message, json, options);
+    return message;
 }
 /**
- * Parse a message from a JSON value, merging fields.
+ * Parse a message from a JSON value, merging fields into the target.
  *
  * Repeated fields are appended. Map entries are added, overwriting
  * existing keys.
  *
  * If a message field is already present, it will be merged with the
  * new data.
+ *
+ * Duplicate keys are rejected as in `fromJson`; use `mergeFromJsonString`
+ * for strict checking.
  */
 function mergeFromJson(schema, target, json, options) {
+    if (target.$typeName !== schema.typeName &&
+        schema.fields.length > 0) {
+        throw new FieldError(schema.fields[0], `cannot use ${schema.fields[0]} with message ${target.$typeName}`, "ForeignFieldError");
+    }
+    readMessage(schema, target, json, options);
+    return target;
+}
+/**
+ * Run the compiled decoder for the message, wrapping FieldErrors with the
+ * standard error message.
+ */
+function readMessage(schema, message, json, options) {
     try {
-        from_json_readMessage(reflect(schema, target), json, from_json_makeReadOptions(options));
+        from_json_compiledReader(schema)(message, json, from_json_makeReadContext(options));
     }
     catch (e) {
         if (isFieldError(e)) {
@@ -59402,302 +60536,676 @@ function mergeFromJson(schema, target, json, options) {
         }
         throw e;
     }
-    return target;
 }
 /**
  * Parses an enum value from JSON.
  */
 function enumFromJson(descEnum, json) {
-    return readEnum(descEnum, json, false);
+    // With ignoreUnknownFields false, the converter never returns the token
+    // for ignored unknown enum values.
+    return compileEnumConverter(descEnum)(json, false);
 }
 /**
  * Is the given value a JSON enum value?
+ *
+ * For an enum value with a custom JSON name set with the option
+ * `(pb.enumvalue.json).string`, this function only returns true for the
+ * custom name, while fromJson() and enumFromJson() also accept the Protobuf
+ * name.
  */
 function isEnumJson(descEnum, value) {
-    return undefined !== descEnum.values.find((v) => v.name === value);
+    return descEnum.values.some((v) => v.jsonName === value);
 }
-const messageJsonFields = new WeakMap();
-function getJsonField(desc, jsonKey) {
-    var _a;
-    if (!messageJsonFields.has(desc)) {
-        const jsonNames = new Map();
-        for (const field of desc.fields) {
-            jsonNames.set(field.name, field).set(field.jsonName, field);
+const from_json_compiledReaders = new WeakMap();
+/**
+ * Return the compiled decoder for a message, compiling it on first use.
+ */
+function from_json_compiledReader(desc) {
+    let compiled = from_json_compiledReaders.get(desc);
+    if (compiled === undefined) {
+        compiled = from_json_compileMessage(desc);
+    }
+    return compiled;
+}
+function from_json_compileMessage(desc) {
+    const descString = String(desc);
+    const readWkt = compileWkt(desc);
+    if (readWkt !== undefined) {
+        // All message decoders count against the recursion limit, including
+        // well-known types with a custom JSON representation.
+        const compiled = (message, json, ctx) => {
+            if (++ctx.depth > ctx.recursionLimit) {
+                throw new Error(`cannot decode ${descString} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
+            }
+            readWkt(message, json, ctx);
+            ctx.depth--;
+        };
+        from_json_compiledReaders.set(desc, compiled);
+        return compiled;
+    }
+    const typeName = desc.typeName;
+    // Fields are looked up by their proto name and their JSON name.
+    const fieldsByJsonKey = new Map();
+    const compiled = (message, json, ctx) => {
+        var _a;
+        if (++ctx.depth > ctx.recursionLimit) {
+            throw new Error(`cannot decode ${descString} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
         }
-        messageJsonFields.set(desc, jsonNames);
-    }
-    return (_a = messageJsonFields.get(desc)) === null || _a === void 0 ? void 0 : _a.get(jsonKey);
-}
-function from_json_readMessage(msg, json, opts) {
-    var _a;
-    if (tryWktFromJson(msg, json, opts)) {
-        return;
-    }
-    if (json == null || Array.isArray(json) || typeof json != "object") {
-        throw new Error(`cannot decode ${msg.desc} from JSON: ${formatVal(json)}`);
-    }
-    const oneofSeen = new Map();
-    for (const [jsonKey, jsonValue] of Object.entries(json)) {
-        const field = getJsonField(msg.desc, jsonKey);
-        if (field) {
-            if (field.oneof) {
-                if (jsonValue === null && field.fieldKind == "scalar") {
-                    // see conformance test Required.Proto3.JsonInput.OneofFieldNull{First,Second}
+        if (json == null || Array.isArray(json) || typeof json != "object") {
+            throw new Error(`cannot decode ${descString} from JSON: ${formatVal(json)}`);
+        }
+        const oneofSeen = new Map();
+        const fieldSeen = new Set();
+        const jsonKeys = Object.keys(json);
+        for (let i = 0; i < jsonKeys.length; i++) {
+            const jsonKey = jsonKeys[i];
+            const jsonValue = json[jsonKey];
+            const entry = fieldsByJsonKey.get(jsonKey);
+            if (entry !== undefined) {
+                const field = entry.field;
+                if (fieldSeen.has(field)) {
+                    // The same field may be set by its proto name and its JSON name, or by
+                    // a duplicate or unicode-escaped key that JSON.parse already collapsed.
+                    // Checked before the null-skip below so that a null entry still counts.
+                    throw new error_FieldError(field, "set multiple times");
+                }
+                fieldSeen.add(field);
+                if (entry.oneofScalarNullSkip && jsonValue === null) {
                     continue;
                 }
-                const seen = oneofSeen.get(field.oneof);
-                if (seen !== undefined) {
-                    throw new FieldError(field.oneof, `oneof set multiple times by ${seen.name} and ${field.name}`);
+                if (entry.oneof) {
+                    const seen = oneofSeen.get(entry.oneof);
+                    if (seen !== undefined) {
+                        throw new error_FieldError(entry.oneof, `oneof set multiple times by ${seen.name} and ${field.name}`);
+                    }
+                    oneofSeen.set(entry.oneof, field);
                 }
-                oneofSeen.set(field.oneof, field);
+                entry.read(message, jsonValue, ctx);
             }
-            from_json_readField(msg, field, jsonValue, opts);
-        }
-        else {
-            let extension = undefined;
-            if (jsonKey.startsWith("[") &&
-                jsonKey.endsWith("]") &&
-                // biome-ignore lint/suspicious/noAssignInExpressions: no
-                (extension = (_a = opts.registry) === null || _a === void 0 ? void 0 : _a.getExtension(jsonKey.substring(1, jsonKey.length - 1))) &&
-                extension.extendee.typeName === msg.desc.typeName) {
-                const [container, field, get] = createExtensionContainer(extension);
-                from_json_readField(container, field, jsonValue, opts);
-                setExtension(msg.message, extension, get());
-            }
-            if (!extension && !opts.ignoreUnknownFields) {
-                throw new Error(`cannot decode ${msg.desc} from JSON: key "${jsonKey}" is unknown`);
+            else {
+                const extension = jsonKey.startsWith("[") && jsonKey.endsWith("]")
+                    ? (_a = ctx.registry) === null || _a === void 0 ? void 0 : _a.getExtension(jsonKey.substring(1, jsonKey.length - 1))
+                    : undefined;
+                if ((extension === null || extension === void 0 ? void 0 : extension.extendee.typeName) == typeName) {
+                    const [container, field, get] = createExtensionContainer(extension);
+                    from_json_compileFieldReader(field)(container[unsafeLocal], jsonValue, ctx);
+                    setExtension(message, extension, get());
+                }
+                if (extension === undefined && !ctx.ignoreUnknownFields) {
+                    throw new Error(`cannot decode ${descString} from JSON: key "${jsonKey}" is unknown`);
+                }
             }
         }
+        ctx.depth--;
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    from_json_compiledReaders.set(desc, compiled);
+    for (const field of desc.fields) {
+        const entry = {
+            read: from_json_compileFieldReader(field),
+            field,
+            oneof: field.oneof,
+            oneofScalarNullSkip: field.oneof !== undefined && field.fieldKind == "scalar",
+        };
+        fieldsByJsonKey.set(field.name, entry).set(field.jsonName, entry);
+    }
+    return compiled;
+}
+/**
+ * Compile a decoder for a well-known type with a custom JSON representation,
+ * or return undefined for other messages. The recursion limit is enforced by
+ * the caller.
+ */
+function compileWkt(desc) {
+    if (!desc.typeName.startsWith("google.protobuf.")) {
+        return undefined;
+    }
+    switch (desc.typeName) {
+        case "google.protobuf.Any":
+            return (message, json, ctx) => anyFromJson(message, json, ctx);
+        case "google.protobuf.Timestamp":
+            return (message, json) => timestampFromJson(message, json);
+        case "google.protobuf.Duration":
+            return (message, json) => durationFromJson(message, json);
+        case "google.protobuf.FieldMask":
+            return (message, json) => fieldMaskFromJson(message, json);
+        case "google.protobuf.Struct":
+            return (message, json, ctx) => structFromJson(message, json, ctx);
+        case "google.protobuf.Value":
+            return (message, json, ctx) => valueFromJson(message, json, ctx);
+        case "google.protobuf.ListValue":
+            return (message, json, ctx) => listValueFromJson(message, json, ctx);
+        default:
+            if (isWrapperDesc(desc)) {
+                const valueField = desc.fields[0];
+                const localName = valueField.localName;
+                const scalar = valueField.scalar;
+                const longAsString = valueField.longAsString;
+                const readScalar = compileScalarConverter(valueField);
+                return (message, json) => {
+                    if (json === null) {
+                        message[localName] = scalarZeroValue(scalar, longAsString);
+                    }
+                    else {
+                        message[localName] = readScalar(json);
+                    }
+                };
+            }
+            return undefined;
     }
 }
-function from_json_readField(msg, field, json, opts) {
+function from_json_compileFieldReader(field) {
     switch (field.fieldKind) {
         case "scalar":
-            readScalarField(msg, field, json);
-            break;
+            return from_json_compileScalarFieldReader(field);
         case "enum":
-            readEnumField(msg, field, json, opts);
-            break;
+            return from_json_compileEnumFieldReader(field);
         case "message":
-            from_json_readMessageField(msg, field, json, opts);
-            break;
+            return from_json_compileMessageFieldReader(field);
         case "list":
-            from_json_readListField(msg.get(field), json, opts);
-            break;
+            return from_json_compileListFieldReader(field);
         case "map":
-            readMapField(msg.get(field), json, opts);
-            break;
+            return from_json_compileMapFieldReader(field);
     }
 }
-function readListOrMapItem(field, json, opts) {
-    if (field.scalar && json !== null) {
-        return scalarFromJson(field, json);
+function from_json_compileScalarFieldReader(field) {
+    const readScalar = compileScalarConverter(field);
+    const localName = field.localName;
+    if (field.oneof) {
+        // JSON null for a oneof scalar member is skipped by the message decoder.
+        const oneofLocalName = field.oneof.localName;
+        return (message, json) => {
+            message[oneofLocalName] = {
+                case: localName,
+                value: readScalar(json),
+            };
+        };
     }
-    if (field.message && !isResetSentinelNullValue(field, json)) {
-        const msgValue = reflect_reflect(field.message);
-        from_json_readMessage(msgValue, json, opts);
-        return msgValue;
-    }
-    if (field.enum && !isResetSentinelNullValue(field, json)) {
-        return readEnum(field.enum, json, opts.ignoreUnknownFields);
-    }
-    throw new FieldError(field, `${field.fieldKind === "list" ? "list item" : "map value"} must not be null`);
-}
-function readMapField(map, json, opts) {
-    if (json === null) {
-        return;
-    }
-    const field = map.field();
-    if (typeof json != "object" || Array.isArray(json)) {
-        throw new FieldError(field, "expected object, got " + formatVal(json));
-    }
-    for (const [jsonMapKey, jsonMapValue] of Object.entries(json)) {
-        const key = mapKeyFromJson(field.mapKey, jsonMapKey);
-        const value = readListOrMapItem(field, jsonMapValue, opts);
-        if (value !== tokenIgnoredUnknownEnum) {
-            map.set(key, value);
+    const clear = compileClear(field);
+    return (message, json) => {
+        if (json === null) {
+            clear(message);
         }
-    }
-}
-function from_json_readListField(list, json, opts) {
-    if (json === null) {
-        return;
-    }
-    const field = list.field();
-    if (!Array.isArray(json)) {
-        throw new FieldError(field, "expected Array, got " + formatVal(json));
-    }
-    for (const jsonItem of json) {
-        const value = readListOrMapItem(field, jsonItem, opts);
-        if (value !== tokenIgnoredUnknownEnum) {
-            list.add(value);
+        else {
+            message[localName] = readScalar(json);
         }
-    }
-}
-function from_json_readMessageField(msg, field, json, opts) {
-    if (isResetSentinelNullValue(field, json)) {
-        msg.clear(field);
-        return;
-    }
-    const msgValue = msg.isSet(field) ? msg.get(field) : reflect_reflect(field.message);
-    from_json_readMessage(msgValue, json, opts);
-    msg.set(field, msgValue);
-}
-function readEnumField(msg, field, json, opts) {
-    if (isResetSentinelNullValue(field, json)) {
-        msg.clear(field);
-        return;
-    }
-    const enumValue = readEnum(field.enum, json, opts.ignoreUnknownFields);
-    if (enumValue !== tokenIgnoredUnknownEnum) {
-        msg.set(field, enumValue);
-    }
-}
-function readScalarField(msg, field, json) {
-    if (json === null) {
-        msg.clear(field);
-    }
-    else {
-        msg.set(field, scalarFromJson(field, json));
-    }
+    };
 }
 /**
- * Indicates whether a value is a sentinel for reseting a field.
- *
- * For this to be true, the value must be a JSON null and the field must not
- * permit a present, Protobuf-serializable null.
- *
- * Only message google.protobuf.Value and enum google.protobuf.NullValue fields
- * permit Protobuf-serializable nulls.
- *
- * Note that field-resetting sentinel nulls are not permitted in lists and maps.
+ * Compile a function that resets the field to unset, mirroring the clear
+ * operation of the reflect API for fields that are not part of a oneof.
  */
-function isResetSentinelNullValue(field, json) {
-    var _a, _b;
-    return (json === null &&
-        ((_a = field.message) === null || _a === void 0 ? void 0 : _a.typeName) != "google.protobuf.Value" &&
-        ((_b = field.enum) === null || _b === void 0 ? void 0 : _b.typeName) != "google.protobuf.NullValue");
+function compileClear(field) {
+    const localName = field.localName;
+    if (field.presence != from_json_IMPLICIT) {
+        // Fields with explicit presence have properties on the prototype chain
+        // for default / zero values (except for proto3). By deleting their own
+        // property, the field is reset.
+        return (message) => {
+            delete message[localName];
+        };
+    }
+    if (field.fieldKind == "enum") {
+        const zero = field.enum.values[0].number;
+        return (message) => {
+            message[localName] = zero;
+        };
+    }
+    const scalar = field.scalar;
+    const longAsString = field.longAsString;
+    return (message) => {
+        message[localName] = scalarZeroValue(scalar, longAsString);
+    };
+}
+function from_json_compileEnumFieldReader(field) {
+    const readEnumValue = compileEnumConverter(field.enum);
+    const checkEnum = compileEnumCheck(field.enum);
+    const localName = field.localName;
+    // Fields with enum google.protobuf.NullValue permit a Protobuf-serializable
+    // null; for all other enums, JSON null resets the field.
+    const nullResets = field.enum.typeName != "google.protobuf.NullValue";
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, json, ctx) => {
+            if (json === null && nullResets) {
+                const oneof = message[oneofLocalName];
+                if (oneof.case === localName) {
+                    message[oneofLocalName] = { case: undefined };
+                }
+                return;
+            }
+            const value = readEnumValue(json, ctx.ignoreUnknownFields);
+            if (value === tokenIgnoredUnknownEnum) {
+                return;
+            }
+            const check = checkEnum(value);
+            if (check !== true) {
+                throw new error_FieldError(field, reasonSingular(field, value, check));
+            }
+            message[oneofLocalName] = { case: localName, value };
+        };
+    }
+    const clear = compileClear(field);
+    return (message, json, ctx) => {
+        if (json === null && nullResets) {
+            clear(message);
+            return;
+        }
+        const value = readEnumValue(json, ctx.ignoreUnknownFields);
+        if (value === tokenIgnoredUnknownEnum) {
+            return;
+        }
+        const check = checkEnum(value);
+        if (check !== true) {
+            throw new error_FieldError(field, reasonSingular(field, value, check));
+        }
+        message[localName] = value;
+    };
+}
+function from_json_compileMessageFieldReader(field) {
+    const localName = field.localName;
+    const { toMessage, toLocal } = localMessageMapper(field);
+    const readChild = from_json_compiledReader(field.message);
+    // Fields with message google.protobuf.Value permit a Protobuf-serializable
+    // null; for all other messages, JSON null resets the field.
+    const nullResets = field.message.typeName != "google.protobuf.Value";
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (message, json, ctx) => {
+            const oneof = message[oneofLocalName];
+            if (json === null && nullResets) {
+                if (oneof.case === localName) {
+                    message[oneofLocalName] = { case: undefined };
+                }
+                return;
+            }
+            const child = toMessage(oneof.case === localName ? oneof.value : undefined);
+            readChild(child, json, ctx);
+            message[oneofLocalName] = { case: localName, value: toLocal(child) };
+        };
+    }
+    return (message, json, ctx) => {
+        if (json === null && nullResets) {
+            delete message[localName];
+            return;
+        }
+        const child = toMessage(message[localName]);
+        readChild(child, json, ctx);
+        message[localName] = toLocal(child);
+    };
+}
+function from_json_compileListFieldReader(field) {
+    const localName = field.localName;
+    const readItem = compileListItemReader(field);
+    return (message, json, ctx) => {
+        if (json === null) {
+            return;
+        }
+        if (!Array.isArray(json)) {
+            throw new error_FieldError(field, "expected Array, got " + formatVal(json));
+        }
+        const items = message[localName];
+        for (let i = 0; i < json.length; i++) {
+            const value = readItem(json[i], ctx, items.length);
+            if (value !== tokenIgnoredUnknownEnum) {
+                items.push(value);
+            }
+        }
+    };
+}
+/**
+ * Compile a decoder for a list item. The index is only used in errors, and
+ * accounts for previously merged items.
+ */
+function compileListItemReader(field) {
+    switch (field.listKind) {
+        case "scalar": {
+            const parseScalar = compileScalarParse(field);
+            const checkValue = checkScalarValue(field.scalar);
+            const toLocal = compileScalarToLocal(field);
+            return (json, ctx, index) => {
+                if (json === null) {
+                    throw new error_FieldError(field, "list item must not be null");
+                }
+                const value = parseScalar(json);
+                const check = checkValue(value);
+                if (check !== true) {
+                    throw new error_FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
+                }
+                return toLocal(value);
+            };
+        }
+        case "enum": {
+            const readEnumValue = compileEnumConverter(field.enum);
+            const checkEnum = compileEnumCheck(field.enum);
+            const nullResets = field.enum.typeName != "google.protobuf.NullValue";
+            return (json, ctx, index) => {
+                if (json === null && nullResets) {
+                    throw new error_FieldError(field, "list item must not be null");
+                }
+                const value = readEnumValue(json, ctx.ignoreUnknownFields);
+                if (value === tokenIgnoredUnknownEnum) {
+                    return value;
+                }
+                const check = checkEnum(value);
+                if (check !== true) {
+                    throw new error_FieldError(field, `list item #${index + 1}: ${reasonSingular(field, value, check)}`);
+                }
+                return value;
+            };
+        }
+        case "message": {
+            const { toMessage, toLocal } = localMessageMapper(field);
+            const readChild = from_json_compiledReader(field.message);
+            const nullResets = field.message.typeName != "google.protobuf.Value";
+            return (json, ctx) => {
+                if (json === null && nullResets) {
+                    throw new error_FieldError(field, "list item must not be null");
+                }
+                const child = toMessage(undefined);
+                readChild(child, json, ctx);
+                return toLocal(child);
+            };
+        }
+    }
+}
+function from_json_compileMapFieldReader(field) {
+    const localName = field.localName;
+    const mapKey = field.mapKey;
+    const parseMapKey = compileMapKeyParse(mapKey);
+    const checkMapKey = checkScalarValue(mapKey);
+    let parseValue;
+    // Additional validation for scalar and enum values, matching the checks
+    // of the reflect API. Message values need no validation.
+    let checkValue;
+    let toLocalValue = (value) => value;
+    // Fields with google.protobuf.Value or google.protobuf.NullValue values
+    // permit a Protobuf-serializable null.
+    let nullResets = true;
+    switch (field.mapKind) {
+        case "scalar": {
+            parseValue = compileScalarParse(field);
+            checkValue = checkScalarValue(field.scalar);
+            toLocalValue = compileScalarToLocal(field);
+            break;
+        }
+        case "enum": {
+            const readEnumValue = compileEnumConverter(field.enum);
+            parseValue = (json, ctx) => readEnumValue(json, ctx.ignoreUnknownFields);
+            checkValue = compileEnumCheck(field.enum);
+            nullResets = field.enum.typeName != "google.protobuf.NullValue";
+            break;
+        }
+        case "message": {
+            const { toMessage, toLocal } = localMessageMapper(field);
+            const readChild = from_json_compiledReader(field.message);
+            nullResets = field.message.typeName != "google.protobuf.Value";
+            parseValue = (json, ctx) => {
+                const child = toMessage(undefined);
+                readChild(child, json, ctx);
+                return toLocal(child);
+            };
+            break;
+        }
+    }
+    return (message, json, ctx) => {
+        if (json === null) {
+            return;
+        }
+        if (typeof json != "object" || Array.isArray(json)) {
+            throw new error_FieldError(field, "expected object, got " + formatVal(json));
+        }
+        const record = message[localName];
+        const seen = new Set();
+        const jsonMapKeys = Object.keys(json);
+        for (let i = 0; i < jsonMapKeys.length; i++) {
+            const jsonMapKey = jsonMapKeys[i];
+            const jsonMapValue = json[jsonMapKey];
+            const key = parseMapKey(jsonMapKey);
+            if (seen.has(key)) {
+                throw new error_FieldError(field, `duplicate map key "${jsonMapKey}"`);
+            }
+            seen.add(key);
+            if (jsonMapValue === null && nullResets) {
+                throw new error_FieldError(field, "map value must not be null");
+            }
+            const value = parseValue(jsonMapValue, ctx);
+            if (value === tokenIgnoredUnknownEnum) {
+                continue;
+            }
+            const checkKey = checkMapKey(key);
+            if (checkKey !== true) {
+                throw new error_FieldError(field, `invalid map key: ${reasonSingular({ scalar: mapKey }, key, checkKey)}`);
+            }
+            if (checkValue !== undefined) {
+                const check = checkValue(value);
+                if (check !== true) {
+                    throw new error_FieldError(field, `map entry ${formatVal(key)}: ${reasonSingular(field, value, check)}`);
+                }
+            }
+            // Map keys may be booleans, numbers, or bigints. Object keys are strings, so
+            // they are converted implicitly. setOwn() is needed because a key can be
+            // "__proto__".
+            setOwn(record, key, toLocalValue(value));
+        }
+    };
 }
 const tokenIgnoredUnknownEnum = Symbol();
-function readEnum(desc, json, ignoreUnknownFields) {
-    if (json === null) {
-        return desc.values[0].number;
+/**
+ * Compile a converter from a JSON value to an enum value. JSON null returns
+ * the enum's first value. With ignoreUnknownFields false, unknown string
+ * values raise an error; with true, they return tokenIgnoredUnknownEnum.
+ * The value is not checked against the enum's values, see compileEnumCheck.
+ */
+function compileEnumConverter(desc) {
+    const zero = desc.values[0].number;
+    // Protobuf compilers reject a custom JSON name that equals the Protobuf name
+    // of another value. As a fallback, the Protobuf name takes precedence, so we
+    // add Protobuf names last.
+    const numbers = new Map();
+    for (const value of desc.values) {
+        numbers.set(value.jsonName, value.number);
     }
-    switch (typeof json) {
-        case "number":
-            if (Number.isInteger(json)) {
-                return json;
-            }
-            break;
-        case "string":
-            const value = desc.values.find((ev) => ev.name === json);
-            if (value !== undefined) {
-                return value.number;
-            }
-            if (ignoreUnknownFields) {
-                return tokenIgnoredUnknownEnum;
-            }
-            break;
+    for (const value of desc.values) {
+        numbers.set(value.name, value.number);
     }
-    throw new Error(`cannot decode ${desc} from JSON: ${formatVal(json)}`);
+    return (json, ignoreUnknownFields) => {
+        if (json === null) {
+            return zero;
+        }
+        switch (typeof json) {
+            case "number":
+                if (Number.isInteger(json)) {
+                    return json;
+                }
+                break;
+            case "string": {
+                const number = numbers.get(json);
+                if (number !== undefined) {
+                    return number;
+                }
+                if (ignoreUnknownFields) {
+                    return tokenIgnoredUnknownEnum;
+                }
+                break;
+            }
+        }
+        throw new Error(`cannot decode ${desc} from JSON: ${formatVal(json)}`);
+    };
 }
 /**
- * Try to parse a JSON value to a scalar value for the reflect API.
- *
- * Returns the input if the JSON value cannot be converted. Raises a FieldError
- * if conversion would be ambiguous.
+ * Compile the check that the reflect API performs for enum values: open
+ * enums accept any int32 value, closed enums accept only declared values.
  */
-function scalarFromJson(field, json) {
-    // int64, sfixed64, sint64, fixed64, uint64: Reflect supports string and number.
-    // string, bool: Supported by reflect.
+function compileEnumCheck(desc) {
+    if (desc.open) {
+        return checkScalarValue(descriptors_ScalarType.INT32);
+    }
+    const values = desc.values;
+    return (value) => values.some((v) => v.number === value);
+}
+/**
+ * Compile a converter from a JSON value to the local representation of a
+ * scalar, fusing JSON parsing, the validation of the reflect API, and the
+ * conversion to the local 64-bit integer representation.
+ */
+function compileScalarConverter(field) {
+    const parseScalar = compileScalarParse(field);
+    const checkValue = checkScalarValue(field.scalar);
+    const toLocal = compileScalarToLocal(field);
+    return (json) => {
+        const value = parseScalar(json);
+        const check = checkValue(value);
+        if (check !== true) {
+            throw new error_FieldError(field, reasonSingular(field, value, check));
+        }
+        return toLocal(value);
+    };
+}
+/**
+ * Compile the JSON-specific parsing step for a scalar value: the special
+ * string values of float and double, string-encoded numbers, and base64
+ * bytes. Returns the input unchanged if the JSON value cannot be converted;
+ * the validation step raises an error for it.
+ */
+function compileScalarParse(field) {
     switch (field.scalar) {
         // float, double: JSON value will be a number or one of the special string values "NaN", "Infinity", and "-Infinity".
         // Either numbers or strings are accepted. Exponent notation is also accepted.
         case descriptors_ScalarType.DOUBLE:
         case descriptors_ScalarType.FLOAT:
-            if (json === "NaN")
-                return NaN;
-            if (json === "Infinity")
-                return Number.POSITIVE_INFINITY;
-            if (json === "-Infinity")
-                return Number.NEGATIVE_INFINITY;
-            if (typeof json == "number") {
-                if (Number.isNaN(json)) {
-                    // NaN must be encoded with string constants
-                    throw new FieldError(field, "unexpected NaN number");
+            return (json) => {
+                if (json === "NaN")
+                    return NaN;
+                if (json === "Infinity")
+                    return Number.POSITIVE_INFINITY;
+                if (json === "-Infinity")
+                    return Number.NEGATIVE_INFINITY;
+                if (typeof json == "number") {
+                    if (Number.isNaN(json)) {
+                        // NaN must be encoded with string constants
+                        throw new error_FieldError(field, "unexpected NaN number");
+                    }
+                    if (!Number.isFinite(json)) {
+                        // Infinity must be encoded with string constants
+                        throw new error_FieldError(field, "unexpected infinite number");
+                    }
+                    return json;
                 }
-                if (!Number.isFinite(json)) {
-                    // Infinity must be encoded with string constants
-                    throw new FieldError(field, "unexpected infinite number");
+                if (typeof json == "string") {
+                    if (json === "") {
+                        // empty string is not a number
+                        return json;
+                    }
+                    if (json.trim().length !== json.length) {
+                        // extra whitespace
+                        return json;
+                    }
+                    const float = Number(json);
+                    if (!Number.isFinite(float)) {
+                        // Infinity and NaN must be encoded with string constants
+                        return json;
+                    }
+                    return float;
                 }
-                break;
-            }
-            if (typeof json == "string") {
-                if (json === "") {
-                    // empty string is not a number
-                    break;
-                }
-                if (json.trim().length !== json.length) {
-                    // extra whitespace
-                    break;
-                }
-                const float = Number(json);
-                if (!Number.isFinite(float)) {
-                    // Infinity and NaN must be encoded with string constants
-                    break;
-                }
-                return float;
-            }
-            break;
+                return json;
+            };
         // int32, fixed32, uint32: JSON value will be a decimal number. Either numbers or strings are accepted.
         case descriptors_ScalarType.INT32:
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
         case descriptors_ScalarType.UINT32:
-            return int32FromJson(json);
+            return int32FromJson;
         // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
         // Either standard or URL-safe base64 encoding with/without paddings are accepted.
         case descriptors_ScalarType.BYTES:
-            if (typeof json == "string") {
-                if (json === "") {
-                    return new Uint8Array(0);
+            return (json) => {
+                if (typeof json == "string") {
+                    if (json === "") {
+                        return new Uint8Array(0);
+                    }
+                    try {
+                        return base64_encoding_base64Decode(json);
+                    }
+                    catch (e) {
+                        const message = e instanceof Error ? e.message : String(e);
+                        throw new error_FieldError(field, message);
+                    }
                 }
-                try {
-                    return base64_encoding_base64Decode(json);
-                }
-                catch (e) {
-                    const message = e instanceof Error ? e.message : String(e);
-                    throw new FieldError(field, message);
-                }
-            }
-            break;
+                return json;
+            };
+        // int64, sfixed64, sint64, fixed64, uint64: The validation step accepts
+        // string and number. string, bool: no conversion.
+        default:
+            return (json) => json;
     }
-    return json;
 }
 /**
- * Try to parse a JSON value to a map key for the reflect API.
- *
- * Returns the input if the JSON value cannot be converted.
+ * Compile the conversion of a validated scalar value to its local
+ * representation: 64-bit integers become bigint, or string with the
+ * longAsString option.
  */
-function mapKeyFromJson(type, jsonString) {
+function compileScalarToLocal(field) {
+    const longAsString = field.fieldKind !== "map" && field.longAsString;
+    switch (field.scalar) {
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.SINT64:
+            if (longAsString) {
+                return (value) => String(value);
+            }
+            return (value) => typeof value == "string" || typeof value == "number"
+                ? protoInt64.parse(value)
+                : value;
+        case descriptors_ScalarType.FIXED64:
+        case descriptors_ScalarType.UINT64:
+            if (longAsString) {
+                return (value) => String(value);
+            }
+            return (value) => typeof value == "string" || typeof value == "number"
+                ? protoInt64.uParse(value)
+                : value;
+        default:
+            return (value) => value;
+    }
+}
+/**
+ * Return a parser from a JSON value to a map key for the given key type.
+ * Canonicalizes 64-bit integers given as string, so that "01" and "1" are
+ * one key, and duplicates can raise an error.
+ * The parser returns the input if the JSON value cannot be converted.
+ */
+function compileMapKeyParse(type) {
     switch (type) {
         case descriptors_ScalarType.BOOL:
-            switch (jsonString) {
-                case "true":
-                    return true;
-                case "false":
-                    return false;
-            }
-            return jsonString;
+            return (jsonString) => {
+                switch (jsonString) {
+                    case "true":
+                        return true;
+                    case "false":
+                        return false;
+                }
+                return jsonString;
+            };
         case descriptors_ScalarType.INT32:
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.UINT32:
         case descriptors_ScalarType.SFIXED32:
         case descriptors_ScalarType.SINT32:
-            return int32FromJson(jsonString);
+            return int32FromJson;
+        case descriptors_ScalarType.INT64:
+        case descriptors_ScalarType.SINT64:
+        case descriptors_ScalarType.SFIXED64:
+        case descriptors_ScalarType.UINT64:
+        case descriptors_ScalarType.FIXED64:
+            return (jsonString) => /^-?0+$/.test(jsonString)
+                ? "0"
+                : jsonString.replace(/^(-?)0+(?=\d)/, "$1");
         default:
-            return jsonString;
+            // ScalarType.STRING
+            return (jsonString) => jsonString;
     }
 }
 /**
@@ -59724,9 +61232,14 @@ function int32FromJson(json) {
     }
     return json;
 }
+/**
+ * Parse a JSON string, rejecting duplicate object keys (which JSON.parse would
+ * otherwise silently merge).
+ */
 function parseJsonString(jsonString, typeName) {
+    let json;
     try {
-        return JSON.parse(jsonString);
+        json = JSON.parse(jsonString);
     }
     catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -59734,48 +61247,85 @@ function parseJsonString(jsonString, typeName) {
         // @ts-expect-error we use the ES2022 error CTOR option "cause" for better stack traces
         { cause: e });
     }
+    checkDuplicateKeys(jsonString, typeName);
+    return json;
 }
-function tryWktFromJson(msg, jsonValue, opts) {
-    if (!msg.desc.typeName.startsWith("google.protobuf.")) {
-        return false;
-    }
-    switch (msg.desc.typeName) {
-        case "google.protobuf.Any":
-            anyFromJson(msg.message, jsonValue, opts);
-            return true;
-        case "google.protobuf.Timestamp":
-            timestampFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.Duration":
-            durationFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.FieldMask":
-            fieldMaskFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.Struct":
-            structFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.Value":
-            valueFromJson(msg.message, jsonValue);
-            return true;
-        case "google.protobuf.ListValue":
-            listValueFromJson(msg.message, jsonValue);
-            return true;
-        default:
-            if (isWrapperDesc(msg.desc)) {
-                const valueField = msg.desc.fields[0];
-                if (jsonValue === null) {
-                    msg.clear(valueField);
+/**
+ * Scan a JSON string for duplicate object member names at any depth, throwing
+ * if any are found. JSON.parse() silently keeps the last of duplicate keys, so
+ * this raw-string scan is the only way to reject them. It must only be called
+ * with a string that JSON.parse() has already accepted, so it can assume the
+ * input is well-formed.
+ */
+function checkDuplicateKeys(jsonString, typeName) {
+    // One Set of seen member names for each open object; arrays push null.
+    const stack = [];
+    // Whether the next string token is an object member name.
+    let expectKey = false;
+    let i = 0;
+    while (i < jsonString.length) {
+        switch (jsonString[i]) {
+            case "{":
+                stack.push(new Set());
+                expectKey = true;
+                i++;
+                break;
+            case "[":
+                stack.push(null);
+                expectKey = false;
+                i++;
+                break;
+            case "}":
+            case "]":
+                stack.pop();
+                expectKey = false;
+                i++;
+                break;
+            case ",":
+                expectKey = stack[stack.length - 1] != null;
+                i++;
+                break;
+            case ":":
+                expectKey = false;
+                i++;
+                break;
+            case '"': {
+                const open = i++;
+                let escaped = false;
+                while (i < jsonString.length) {
+                    if (jsonString[i] == "\\") {
+                        escaped = true;
+                        i += 2; // skip the backslash and the character it escapes
+                        continue;
+                    }
+                    if (jsonString[i] == '"') {
+                        break;
+                    }
+                    i++;
                 }
-                else {
-                    msg.set(valueField, scalarFromJson(valueField, jsonValue));
+                const close = i++;
+                const seen = stack[stack.length - 1];
+                if (expectKey && seen) {
+                    // Decode escapes (rare) so that, for example, a key written with a
+                    // unicode escape collides with the same key written literally.
+                    const name = escaped
+                        ? JSON.parse(jsonString.substring(open, close + 1))
+                        : jsonString.substring(open + 1, close);
+                    if (seen.has(name)) {
+                        throw new Error(`cannot decode message ${typeName} from JSON: duplicate object key "${name}"`);
+                    }
+                    seen.add(name);
                 }
-                return true;
+                expectKey = false;
+                break;
             }
-            return false;
+            default:
+                i++;
+                break;
+        }
     }
 }
-function anyFromJson(any, json, opts) {
+function anyFromJson(any, json, ctx) {
     var _a;
     if (json === null || Array.isArray(json) || typeof json != "object") {
         throw new Error(`cannot decode message ${any.$typeName} from JSON: expected object but got ${formatVal(json)}`);
@@ -59793,23 +61343,25 @@ function anyFromJson(any, json, opts) {
     if (!typeName.length) {
         throw new Error(`cannot decode message ${any.$typeName} from JSON: "@type" is invalid`);
     }
-    const desc = (_a = opts.registry) === null || _a === void 0 ? void 0 : _a.getMessage(typeName);
+    const desc = (_a = ctx.registry) === null || _a === void 0 ? void 0 : _a.getMessage(typeName);
     if (!desc) {
         throw new Error(`cannot decode message ${any.$typeName} from JSON: ${typeUrl} is not in the type registry`);
     }
-    const msg = reflect_reflect(desc);
-    if (typeName.startsWith("google.protobuf.") &&
+    const message = create_create(desc);
+    if (hasCustomJsonRepresentation(desc) &&
         Object.prototype.hasOwnProperty.call(json, "value")) {
-        const value = json.value;
-        from_json_readMessage(msg, value, opts);
+        from_json_compiledReader(desc)(message, json.value, ctx);
     }
     else {
-        const copy = Object.assign({}, json);
-        // biome-ignore lint/performance/noDelete: <explanation>
-        delete copy["@type"];
-        from_json_readMessage(msg, copy, opts);
+        const copy = {};
+        for (const key of Object.keys(json)) {
+            if (key !== "@type") {
+                setOwn(copy, key, json[key]);
+            }
+        }
+        from_json_compiledReader(desc)(message, copy, ctx);
     }
-    anyPack(msg.desc, msg.message, any);
+    anyPack(desc, message, any);
 }
 function timestampFromJson(timestamp, json) {
     if (typeof json !== "string") {
@@ -59825,8 +61377,7 @@ function timestampFromJson(timestamp, json) {
     if (Number.isNaN(ms)) {
         throw new Error(`cannot decode message ${timestamp.$typeName} from JSON: invalid RFC 3339 string`);
     }
-    if (ms < Date.parse("0001-01-01T00:00:00Z") ||
-        ms > Date.parse("9999-12-31T23:59:59Z")) {
+    if (ms < timestampMsMin || ms > timestampMsMax) {
         throw new Error(`cannot decode message ${timestamp.$typeName} from JSON: must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive`);
     }
     timestamp.seconds = protoInt64.parse(ms / 1000);
@@ -59846,7 +61397,7 @@ function durationFromJson(duration, json) {
         throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${formatVal(json)}`);
     }
     const longSeconds = Number(match[1]);
-    if (longSeconds > 315576000000 || longSeconds < -315576000000) {
+    if (longSeconds > durationSecondsMax || longSeconds < durationSecondsMin) {
         throw new Error(`cannot decode message ${duration.$typeName} from JSON: ${formatVal(json)}`);
     }
     duration.seconds = protoInt64.parse(longSeconds);
@@ -59873,17 +61424,22 @@ function fieldMaskFromJson(fieldMask, json) {
         return protoSnakeCase(path);
     });
 }
-function structFromJson(struct, json) {
+function structFromJson(struct, json, ctx) {
     if (typeof json != "object" || json == null || Array.isArray(json)) {
         throw new Error(`cannot decode message ${struct.$typeName} from JSON ${formatVal(json)}`);
     }
-    for (const [k, v] of Object.entries(json)) {
-        const parsedV = create_create(ValueSchema);
-        valueFromJson(parsedV, v);
-        struct.fields[k] = parsedV;
+    const keys = Object.keys(json);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const parsedValue = create_create(ValueSchema);
+        valueFromJson(parsedValue, json[key], ctx);
+        setOwn(struct.fields, key, parsedValue);
     }
 }
-function valueFromJson(value, json) {
+function valueFromJson(value, json, ctx) {
+    if (++ctx.depth > ctx.recursionLimit) {
+        throw new Error(`cannot decode ${value.$typeName} from JSON: maximum recursion depth of ${ctx.recursionLimit} reached`);
+    }
     switch (typeof json) {
         case "number":
             value.kind = { case: "numberValue", value: json };
@@ -59900,27 +61456,28 @@ function valueFromJson(value, json) {
             }
             else if (Array.isArray(json)) {
                 const listValue = create_create(ListValueSchema);
-                listValueFromJson(listValue, json);
+                listValueFromJson(listValue, json, ctx);
                 value.kind = { case: "listValue", value: listValue };
             }
             else {
                 const struct = create_create(StructSchema);
-                structFromJson(struct, json);
+                structFromJson(struct, json, ctx);
                 value.kind = { case: "structValue", value: struct };
             }
             break;
         default:
             throw new Error(`cannot decode message ${value.$typeName} from JSON ${formatVal(json)}`);
     }
+    ctx.depth--;
     return value;
 }
-function listValueFromJson(listValue, json) {
+function listValueFromJson(listValue, json, ctx) {
     if (!Array.isArray(json)) {
         throw new Error(`cannot decode message ${listValue.$typeName} from JSON ${formatVal(json)}`);
     }
-    for (const e of json) {
+    for (let i = 0; i < json.length; i++) {
         const value = create_create(ValueSchema);
-        valueFromJson(value, e);
+        valueFromJson(value, json[i], ctx);
         listValue.values.push(value);
     }
 }
@@ -60319,9 +61876,13 @@ function createMessage(message, code) {
 
 
 
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name: FeatureSet_FieldPresence.$localName = $number;
+
+
+
+
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.LEGACY_REQUIRED: const $name = $number;
 const to_json_LEGACY_REQUIRED = 3;
-// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name: FeatureSet_FieldPresence.$localName = $number;
+// bootstrap-inject google.protobuf.FeatureSet.FieldPresence.IMPLICIT: const $name = $number;
 const to_json_IMPLICIT = 2;
 // Default options for serializing to JSON.
 const jsonWriteDefaults = {
@@ -60337,7 +61898,7 @@ function to_json_makeWriteOptions(options) {
  * passed to JSON.stringify().
  */
 function to_json_toJson(schema, message, options) {
-    return reflectToJson(reflect_reflect(schema, message), to_json_makeWriteOptions(options));
+    return to_json_compiledWriter(schema)(to_json_makeWriteOptions(options), message);
 }
 /**
  * Serialize the message to a JSON string.
@@ -60355,129 +61916,365 @@ function enumToJson(descEnum, value) {
     if (descEnum.typeName == "google.protobuf.NullValue") {
         return null;
     }
-    const name = (_a = descEnum.value[value]) === null || _a === void 0 ? void 0 : _a.name;
+    const name = (_a = descEnum.value[value]) === null || _a === void 0 ? void 0 : _a.jsonName;
     if (name === undefined) {
         throw new Error(`${value} is not a value in ${descEnum}`);
     }
     return name;
 }
-function reflectToJson(msg, opts) {
-    var _a;
-    const wktJson = tryWktToJson(msg, opts);
-    if (wktJson !== undefined)
-        return wktJson;
-    const json = {};
-    for (const f of msg.sortedFields) {
-        if (!msg.isSet(f)) {
-            if (f.presence == to_json_LEGACY_REQUIRED) {
-                throw new Error(`cannot encode ${f} to JSON: required field not set`);
-            }
-            if (!opts.alwaysEmitImplicit || f.presence !== to_json_IMPLICIT) {
-                // Fields with implicit presence omit zero values (e.g. empty string) by default
-                continue;
-            }
-        }
-        const jsonValue = fieldToJson(f, msg.get(f), opts);
-        if (jsonValue !== undefined) {
-            json[jsonName(f, opts)] = jsonValue;
-        }
+const to_json_compiledWriters = new WeakMap();
+/**
+ * Return the compiled encoder for a message, compiling it on first use.
+ */
+function to_json_compiledWriter(desc) {
+    let compiled = to_json_compiledWriters.get(desc);
+    if (compiled === undefined) {
+        compiled = to_json_compileMessage(desc);
     }
-    if (opts.registry) {
-        const tagSeen = new Set();
-        for (const { no } of (_a = msg.getUnknown()) !== null && _a !== void 0 ? _a : []) {
-            // Same tag can appear multiple times, so we
-            // keep track and skip identical ones.
-            if (!tagSeen.has(no)) {
-                tagSeen.add(no);
-                const extension = opts.registry.getExtensionFor(msg.desc, no);
-                if (!extension) {
-                    continue;
-                }
-                const value = getExtension(msg.message, extension);
-                const [container, field] = createExtensionContainer(extension, value);
-                const jsonValue = fieldToJson(field, container.get(field), opts);
-                if (jsonValue !== undefined) {
-                    json[extension.jsonName] = jsonValue;
-                }
-            }
-        }
-    }
-    return json;
+    return compiled;
 }
-function fieldToJson(f, val, opts) {
-    switch (f.fieldKind) {
+function to_json_compileMessage(desc) {
+    const typeName = desc.typeName;
+    const writeWkt = to_json_compileWkt(desc);
+    if (writeWkt !== undefined) {
+        // The field reported in ForeignFieldError. All well-known types with a
+        // custom JSON representation have at least one field.
+        const foreignField = desc.fields[0];
+        const compiledWriter = (opts, message) => {
+            if (message.$typeName !== typeName && foreignField !== undefined) {
+                throw new error_FieldError(foreignField, `cannot use ${foreignField} with message ${message.$typeName}`, "ForeignFieldError");
+            }
+            return writeWkt(opts, message);
+        };
+        to_json_compiledWriters.set(desc, compiledWriter);
+        return compiledWriter;
+    }
+    const sortedFields = desc.fields.concat().sort((a, b) => a.number - b.number);
+    // The field reported in ForeignFieldError.
+    const foreignField = sortedFields[0];
+    const fieldWriters = [];
+    const compiledWriter = (opts, message) => {
+        if (message.$typeName !== typeName && foreignField !== undefined) {
+            throw new error_FieldError(foreignField, `cannot use ${foreignField} with message ${message.$typeName}`, "ForeignFieldError");
+        }
+        const json = {};
+        for (let i = 0; i < fieldWriters.length; i++) {
+            fieldWriters[i](opts, message, json);
+        }
+        if (opts.registry) {
+            writeExtensions(json, opts, opts.registry, message, desc);
+        }
+        return json;
+    };
+    // Register before compiling fields, so that recursive message types
+    // resolve to this instance instead of compiling endlessly.
+    to_json_compiledWriters.set(desc, compiledWriter);
+    for (const field of sortedFields) {
+        const writeField = to_json_compileField(field);
+        // Both names a field can be written under are fixed by the schema, so we
+        // decide here, once, whether a field needs the wrapper. Ordinary fields
+        // get the plain writer, keeping the hot path free of any per-write check.
+        fieldWriters.push(field.jsonName === "__proto__" || field.name === "__proto__"
+            ? writeOwnKeys(writeField)
+            : writeField);
+    }
+    return compiledWriter;
+}
+/**
+ * Wrap a field encoder so that a JSON name or proto name of "__proto__" ends
+ * up as an own property. Assigning that key on a plain object hits the
+ * inherited accessor instead, and the field is silently lost. The encoder
+ * writes to a null-prototype object, where the key is ordinary, and the
+ * result is copied to the real output with setOwn().
+ */
+function writeOwnKeys(writeField) {
+    return (opts, message, json) => {
+        const tmp = Object.create(null);
+        writeField(opts, message, tmp);
+        for (const key of Object.keys(tmp)) {
+            setOwn(json, key, tmp[key]);
+        }
+    };
+}
+/**
+ * Compile an encoder for a well-known type with a custom JSON representation,
+ * or return undefined for other messages.
+ */
+function to_json_compileWkt(desc) {
+    if (!desc.typeName.startsWith("google.protobuf.")) {
+        return undefined;
+    }
+    switch (desc.typeName) {
+        case "google.protobuf.Any":
+            return (opts, message) => anyToJson(message, opts);
+        case "google.protobuf.Timestamp":
+            return (opts, message) => timestampToJson(message);
+        case "google.protobuf.Duration":
+            return (opts, message) => durationToJson(message);
+        case "google.protobuf.FieldMask":
+            return (opts, message) => fieldMaskToJson(message);
+        case "google.protobuf.Struct":
+            return (opts, message) => structToJson(message);
+        case "google.protobuf.Value":
+            return (opts, message) => valueToJson(message);
+        case "google.protobuf.ListValue":
+            return (opts, message) => listValueToJson(message);
+        default:
+            if (isWrapperDesc(desc)) {
+                const valueField = desc.fields[0];
+                const localName = valueField.localName;
+                const zero = scalarZeroValue(valueField.scalar, false);
+                const writeScalar = to_json_compileScalarValue(valueField);
+                return (opts, message) => {
+                    const value = message[localName];
+                    return writeScalar(opts, value === undefined ? zero : value);
+                };
+            }
+            return undefined;
+    }
+}
+function to_json_compileField(field) {
+    switch (field.fieldKind) {
         case "scalar":
-            return scalarToJson(f, val);
-        case "message":
-            return reflectToJson(val, opts);
         case "enum":
-            return enumToJsonInternal(f.enum, val, opts.enumAsInteger);
+        case "message":
+            return to_json_compileSingularField(field);
         case "list":
-            return listToJson(val, opts);
+        case "map": {
+            const writeValue = field.fieldKind == "list"
+                ? compileListValue(field)
+                : compileMapValue(field);
+            const protoName = field.name;
+            const jsonKey = field.jsonName;
+            const localName = field.localName;
+            return (opts, message, json) => {
+                const value = writeValue(opts, message[localName]);
+                if (value !== undefined) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = value;
+                }
+            };
+        }
+    }
+}
+/**
+ * Compile an encoder for a singular field: the presence check, and the
+ * value encoder.
+ */
+function to_json_compileSingularField(field) {
+    const writeValue = to_json_compileSingularValue(field);
+    const protoName = field.name;
+    const jsonKey = field.jsonName;
+    const localName = field.localName;
+    if (field.oneof) {
+        const oneofLocalName = field.oneof.localName;
+        return (opts, message, json) => {
+            const oneof = message[oneofLocalName];
+            if (oneof.case === localName) {
+                json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, oneof.value);
+            }
+        };
+    }
+    if (field.presence != to_json_IMPLICIT) {
+        const requiredError = field.presence == to_json_LEGACY_REQUIRED
+            ? `cannot encode ${field} to JSON: required field not set`
+            : undefined;
+        return (opts, message, json) => {
+            const value = message[localName];
+            // Fields with explicit presence have properties on the prototype
+            // chain for default / zero values (except for proto3).
+            if (value !== undefined &&
+                Object.prototype.hasOwnProperty.call(message, localName)) {
+                json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+            }
+            else if (requiredError !== undefined) {
+                throw new Error(requiredError);
+            }
+        };
+    }
+    // Implicit presence: the field is emitted when the value is not the zero
+    // value, or when alwaysEmitImplicit is enabled. The zero check is inlined
+    // per type, see isScalarZeroValue.
+    if (field.fieldKind == "enum") {
+        const zero = field.enum.values[0].number;
+        return (opts, message, json) => {
+            const value = message[localName];
+            if (value !== zero || opts.alwaysEmitImplicit) {
+                json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+            }
+        };
+    }
+    switch (field.scalar) {
+        case descriptors_ScalarType.BOOL:
+            return (opts, message, json) => {
+                const value = message[localName];
+                if (value !== false || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        case descriptors_ScalarType.STRING:
+            return (opts, message, json) => {
+                const value = message[localName];
+                if (value !== "" || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        case descriptors_ScalarType.BYTES:
+            return (opts, message, json) => {
+                const value = message[localName];
+                if (!(value instanceof Uint8Array) ||
+                    value.byteLength > 0 ||
+                    opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        case descriptors_ScalarType.DOUBLE:
+        case descriptors_ScalarType.FLOAT:
+            return (opts, message, json) => {
+                const value = message[localName];
+                // Object.is distinguishes -0 from 0.
+                if (!Object.is(value, 0) || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+        default:
+            return (opts, message, json) => {
+                const value = message[localName];
+                // Loose comparison matches 0n, 0 and "0".
+                if (value != 0 || opts.alwaysEmitImplicit) {
+                    json[opts.useProtoFieldName ? protoName : jsonKey] = writeValue(opts, value);
+                }
+            };
+    }
+}
+/**
+ * Compile an encoder for the value of a field of any kind. Used for
+ * extension values.
+ */
+function compileFieldValue(field) {
+    switch (field.fieldKind) {
+        case "scalar":
+        case "enum":
+        case "message":
+            return to_json_compileSingularValue(field);
+        case "list":
+            return compileListValue(field);
         case "map":
-            return mapToJson(val, opts);
+            return compileMapValue(field);
     }
 }
-function mapToJson(map, opts) {
-    const f = map.field();
-    const jsonObj = {};
-    switch (f.mapKind) {
+/**
+ * Compile an encoder for the value of a singular field.
+ */
+function to_json_compileSingularValue(field) {
+    switch (field.fieldKind) {
         case "scalar":
-            for (const [entryKey, entryValue] of map) {
-                jsonObj[entryKey] = scalarToJson(f, entryValue);
-            }
-            break;
-        case "message":
-            for (const [entryKey, entryValue] of map) {
-                jsonObj[entryKey] = reflectToJson(entryValue, opts);
-            }
-            break;
+            return to_json_compileScalarValue(field);
         case "enum":
-            for (const [entryKey, entryValue] of map) {
-                jsonObj[entryKey] = enumToJsonInternal(f.enum, entryValue, opts.enumAsInteger);
-            }
-            break;
+            return compileEnumValue(field);
+        case "message":
+            return compileMessageValue(field);
     }
-    return opts.alwaysEmitImplicit || map.size > 0 ? jsonObj : undefined;
 }
-function listToJson(list, opts) {
-    const f = list.field();
-    const jsonArr = [];
-    switch (f.listKind) {
+/**
+ * Compile an encoder for the value of a message field.
+ */
+function compileMessageValue(field) {
+    const { toMessage } = localMessageMapper(field);
+    const writeMessage = to_json_compiledWriter(field.message);
+    return (opts, value) => writeMessage(opts, toMessage(value));
+}
+/**
+ * Compile an encoder for a list field value. Returns undefined for an empty
+ * list, unless alwaysEmitImplicit is enabled.
+ */
+function compileListValue(field) {
+    const writeItem = compileListItemValue(field);
+    return (opts, value) => {
+        const items = value;
+        if (items.length == 0 && !opts.alwaysEmitImplicit) {
+            return undefined;
+        }
+        const jsonArray = [];
+        for (let i = 0; i < items.length; i++) {
+            jsonArray.push(writeItem(opts, items[i]));
+        }
+        return jsonArray;
+    };
+}
+function compileListItemValue(field) {
+    switch (field.listKind) {
         case "scalar":
-            for (const item of list) {
-                jsonArr.push(scalarToJson(f, item));
-            }
-            break;
+            return to_json_compileScalarValue(field);
         case "enum":
-            for (const item of list) {
-                jsonArr.push(enumToJsonInternal(f.enum, item, opts.enumAsInteger));
-            }
-            break;
+            return compileEnumValue(field);
         case "message":
-            for (const item of list) {
-                jsonArr.push(reflectToJson(item, opts));
-            }
-            break;
+            return compileMessageValue(field);
     }
-    return opts.alwaysEmitImplicit || jsonArr.length > 0 ? jsonArr : undefined;
 }
-function enumToJsonInternal(desc, value, enumAsInteger) {
-    var _a;
-    if (typeof value != "number") {
-        throw new Error(`cannot encode ${desc} to JSON: expected number, got ${formatVal(value)}`);
+/**
+ * Compile an encoder for a map field value. Returns undefined for an empty
+ * map, unless alwaysEmitImplicit is enabled. Map keys are stored as object
+ * keys and are used as JSON keys as-is.
+ */
+function compileMapValue(field) {
+    const writeMapValue = compileMapEntryValue(field);
+    return (opts, value) => {
+        const record = value;
+        const keys = Object.keys(record);
+        if (keys.length == 0 && !opts.alwaysEmitImplicit) {
+            return undefined;
+        }
+        const jsonObject = {};
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            setOwn(jsonObject, key, writeMapValue(opts, record[key]));
+        }
+        return jsonObject;
+    };
+}
+function compileMapEntryValue(field) {
+    switch (field.mapKind) {
+        case "scalar":
+            return to_json_compileScalarValue(field);
+        case "enum":
+            return compileEnumValue(field);
+        case "message":
+            return compileMessageValue(field);
     }
+}
+/**
+ * Compile an encoder for an enum value.
+ */
+function compileEnumValue(field) {
+    const desc = field.enum;
     if (desc.typeName == "google.protobuf.NullValue") {
-        return null;
+        return (opts, value) => {
+            if (typeof value != "number") {
+                throw errorEnumValue(desc, value);
+            }
+            return null;
+        };
     }
-    if (enumAsInteger) {
-        return value;
-    }
-    const val = desc.value[value];
-    return (_a = val === null || val === void 0 ? void 0 : val.name) !== null && _a !== void 0 ? _a : value; // if we don't know the enum value, just return the number
+    return (opts, value) => {
+        var _a, _b;
+        if (typeof value != "number") {
+            throw errorEnumValue(desc, value);
+        }
+        if (opts.enumAsInteger) {
+            return value;
+        }
+        // If we don't know the enum value, just return the number.
+        return (_b = (_a = desc.value[value]) === null || _a === void 0 ? void 0 : _a.jsonName) !== null && _b !== void 0 ? _b : value;
+    };
 }
-function scalarToJson(field, value) {
-    var _a, _b, _c, _d, _e, _f;
+function errorEnumValue(desc, value) {
+    return new Error(`cannot encode ${desc} to JSON: expected number, got ${formatVal(value)}`);
+}
+/**
+ * Compile an encoder for a scalar value. Errors report the original field
+ * descriptor, which may be a list or map field for items of those fields.
+ */
+function to_json_compileScalarValue(field) {
     switch (field.scalar) {
         // int32, fixed32, uint32: JSON value will be a decimal number. Either numbers or strings are accepted.
         case descriptors_ScalarType.INT32:
@@ -60485,84 +62282,100 @@ function scalarToJson(field, value) {
         case descriptors_ScalarType.SINT32:
         case descriptors_ScalarType.FIXED32:
         case descriptors_ScalarType.UINT32:
-            if (typeof value != "number") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_a = checkField(field, value)) === null || _a === void 0 ? void 0 : _a.message}`);
-            }
-            return value;
+            return (opts, value) => {
+                if (typeof value != "number") {
+                    throw errorScalarValue(field, value);
+                }
+                return value;
+            };
         // float, double: JSON value will be a number or one of the special string values "NaN", "Infinity", and "-Infinity".
         // Either numbers or strings are accepted. Exponent notation is also accepted.
         case descriptors_ScalarType.FLOAT:
-        case descriptors_ScalarType.DOUBLE: // eslint-disable-line no-fallthrough
-            if (typeof value != "number") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_b = checkField(field, value)) === null || _b === void 0 ? void 0 : _b.message}`);
-            }
-            if (Number.isNaN(value))
-                return "NaN";
-            if (value === Number.POSITIVE_INFINITY)
-                return "Infinity";
-            if (value === Number.NEGATIVE_INFINITY)
-                return "-Infinity";
-            return value;
+        case descriptors_ScalarType.DOUBLE:
+            return (opts, value) => {
+                if (typeof value != "number") {
+                    throw errorScalarValue(field, value);
+                }
+                if (Number.isNaN(value))
+                    return "NaN";
+                if (value === Number.POSITIVE_INFINITY)
+                    return "Infinity";
+                if (value === Number.NEGATIVE_INFINITY)
+                    return "-Infinity";
+                return value;
+            };
         // string:
         case descriptors_ScalarType.STRING:
-            if (typeof value != "string") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_c = checkField(field, value)) === null || _c === void 0 ? void 0 : _c.message}`);
-            }
-            return value;
+            return (opts, value) => {
+                if (typeof value != "string") {
+                    throw errorScalarValue(field, value);
+                }
+                return value;
+            };
         // bool:
         case descriptors_ScalarType.BOOL:
-            if (typeof value != "boolean") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_d = checkField(field, value)) === null || _d === void 0 ? void 0 : _d.message}`);
-            }
-            return value;
+            return (opts, value) => {
+                if (typeof value != "boolean") {
+                    throw errorScalarValue(field, value);
+                }
+                return value;
+            };
         // JSON value will be a decimal string. Either numbers or strings are accepted.
         case descriptors_ScalarType.UINT64:
         case descriptors_ScalarType.FIXED64:
         case descriptors_ScalarType.INT64:
         case descriptors_ScalarType.SFIXED64:
         case descriptors_ScalarType.SINT64:
-            if (typeof value != "bigint" && typeof value != "string") {
-                throw new Error(`cannot encode ${field} to JSON: ${(_e = checkField(field, value)) === null || _e === void 0 ? void 0 : _e.message}`);
-            }
-            return value.toString();
+            return (opts, value) => {
+                if (typeof value == "bigint" ||
+                    typeof value == "string" ||
+                    (typeof value == "number" && Number.isInteger(value))) {
+                    return value.toString();
+                }
+                throw errorScalarValue(field, value);
+            };
         // bytes: JSON value will be the data encoded as a string using standard base64 encoding with paddings.
         // Either standard or URL-safe base64 encoding with/without paddings are accepted.
         case descriptors_ScalarType.BYTES:
-            if (value instanceof Uint8Array) {
-                return base64_encoding_base64Encode(value);
-            }
-            throw new Error(`cannot encode ${field} to JSON: ${(_f = checkField(field, value)) === null || _f === void 0 ? void 0 : _f.message}`);
+            return (opts, value) => {
+                if (value instanceof Uint8Array) {
+                    return base64_encoding_base64Encode(value);
+                }
+                throw errorScalarValue(field, value);
+            };
     }
 }
-function jsonName(f, opts) {
-    return opts.useProtoFieldName ? f.name : f.jsonName;
+function errorScalarValue(field, value) {
+    var _a;
+    return new Error(`cannot encode ${field} to JSON: ${(_a = checkField(field, value)) === null || _a === void 0 ? void 0 : _a.message}`);
 }
-// returns a json value if wkt, otherwise returns undefined.
-function tryWktToJson(msg, opts) {
-    if (!msg.desc.typeName.startsWith("google.protobuf.")) {
-        return undefined;
+/**
+ * Write extensions for unknown fields that are found in the registry.
+ */
+function writeExtensions(json, opts, registry, message, desc) {
+    const unknown = message.$unknown;
+    if (unknown === undefined) {
+        return;
     }
-    switch (msg.desc.typeName) {
-        case "google.protobuf.Any":
-            return anyToJson(msg.message, opts);
-        case "google.protobuf.Timestamp":
-            return timestampToJson(msg.message);
-        case "google.protobuf.Duration":
-            return durationToJson(msg.message);
-        case "google.protobuf.FieldMask":
-            return fieldMaskToJson(msg.message);
-        case "google.protobuf.Struct":
-            return structToJson(msg.message);
-        case "google.protobuf.Value":
-            return valueToJson(msg.message);
-        case "google.protobuf.ListValue":
-            return listValueToJson(msg.message);
-        default:
-            if (isWrapperDesc(msg.desc)) {
-                const valueField = msg.desc.fields[0];
-                return scalarToJson(valueField, msg.get(valueField));
+    const tagSeen = new Set();
+    for (let i = 0; i < unknown.length; i++) {
+        const { no } = unknown[i];
+        // Same tag can appear multiple times, so we
+        // keep track and skip identical ones.
+        if (!tagSeen.has(no)) {
+            tagSeen.add(no);
+            const extension = registry.getExtensionFor(desc, no);
+            if (!extension) {
+                continue;
             }
-            return undefined;
+            const value = getExtension(message, extension);
+            const [container, field] = createExtensionContainer(extension, value);
+            const local = container[unsafeLocal];
+            const jsonValue = compileFieldValue(field)(opts, local[field.localName]);
+            if (jsonValue !== undefined) {
+                json[extension.jsonName] = jsonValue;
+            }
+        }
     }
 }
 function anyToJson(val, opts) {
@@ -60581,20 +62394,18 @@ function anyToJson(val, opts) {
     if (!desc || !message) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: "${val.typeUrl}" is not in the type registry`);
     }
-    let json = reflectToJson(reflect_reflect(desc, message), opts);
-    if (desc.typeName.startsWith("google.protobuf.") ||
-        json === null ||
-        Array.isArray(json) ||
-        typeof json !== "object") {
-        json = { value: json };
-    }
+    const json = hasCustomJsonRepresentation(desc)
+        ? {
+            value: to_json_compiledWriter(desc)(opts, message),
+        }
+        : to_json_compiledWriter(desc)(opts, message);
     json["@type"] = val.typeUrl;
     return json;
 }
 function durationToJson(val) {
     const seconds = Number(val.seconds);
     const nanos = val.nanos;
-    if (seconds > 315576000000 || seconds < -315576000000) {
+    if (seconds > durationSecondsMax || seconds < durationSecondsMin) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: value out of range`);
     }
     if ((seconds > 0 && nanos < 0) || (seconds < 0 && nanos > 0)) {
@@ -60629,8 +62440,10 @@ function fieldMaskToJson(val) {
 }
 function structToJson(val) {
     const json = {};
-    for (const [k, v] of Object.entries(val.fields)) {
-        json[k] = valueToJson(v);
+    const keys = Object.keys(val.fields);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        setOwn(json, key, valueToJson(val.fields[key]));
     }
     return json;
 }
@@ -60660,8 +62473,7 @@ function listValueToJson(val) {
 }
 function timestampToJson(val) {
     const ms = Number(val.seconds) * 1000;
-    if (ms < Date.parse("0001-01-01T00:00:00Z") ||
-        ms > Date.parse("9999-12-31T23:59:59Z")) {
+    if (ms < timestampMsMin || ms > timestampMsMax) {
         throw new Error(`cannot encode message ${val.$typeName} to JSON: must be from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z inclusive`);
     }
     if (val.nanos < 0) {
@@ -63593,7 +65405,7 @@ function serviceDesc(file, path, ...paths) {
     return file.services[path];
 }
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/duration_pb.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/google/protobuf/duration_pb.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -63619,7 +65431,7 @@ const file_google_protobuf_duration = /*@__PURE__*/ fileDesc("Ch5nb29nbGUvcHJvdG
  */
 const DurationSchema = /*@__PURE__*/ (/* unused pure expression or super */ null && (messageDesc(file_google_protobuf_duration, 0)));
 
-;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/gen/google/protobuf/timestamp_pb.js
+;// CONCATENATED MODULE: ./node_modules/@bufbuild/protobuf/dist/esm/wkt/google/protobuf/timestamp_pb.js
 // Copyright 2021-2026 Buf Technologies, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -64550,6 +66362,7 @@ function getInputs() {
     const inputs = {
         version: getInput("version"),
         token: getInput("token") || inputs_getEnv("BUF_TOKEN"),
+        bot_username: getInput("bot_username"),
         checksum: getInput("checksum"),
         domain: getInput("domain"),
         setup_only: getBooleanInput("setup_only"),
@@ -64626,6 +66439,9 @@ var Outputs;
 (function (Outputs) {
     Outputs["BufVersion"] = "buf_version";
     Outputs["BufPath"] = "buf_path";
+    // Only set when the token was minted by workload identity federation. It is
+    // registered as a secret, so it is masked in logs.
+    Outputs["Token"] = "token";
 })(Outputs || (Outputs = {}));
 
 // EXTERNAL MODULE: ./node_modules/semver/index.js
@@ -64948,7 +66764,7 @@ function http_client_lib_isHttps(requestUrl) {
     const parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
-class http_client_lib_HttpClient {
+class lib_HttpClient {
     constructor(userAgent, handlers, requestOptions) {
         this._ignoreSslError = false;
         this._allowRedirects = true;
@@ -65390,10 +67206,10 @@ class http_client_lib_HttpClient {
             let tunnelAgent;
             const overHttps = proxyUrl.protocol === 'https:';
             if (usingSsl) {
-                tunnelAgent = overHttps ? node_modules_tunnel.httpsOverHttps : node_modules_tunnel.httpsOverHttp;
+                tunnelAgent = overHttps ? tunnel.httpsOverHttps : tunnel.httpsOverHttp;
             }
             else {
-                tunnelAgent = overHttps ? node_modules_tunnel.httpOverHttps : node_modules_tunnel.httpOverHttp;
+                tunnelAgent = overHttps ? tunnel.httpOverHttps : tunnel.httpOverHttp;
             }
             agent = tunnelAgent(agentOptions);
             this._proxyAgent = agent;
@@ -65660,7 +67476,7 @@ function downloadToolAttempt(url, dest, auth, headers) {
             throw new Error(`Destination file path ${dest} already exists`);
         }
         // Get the response headers
-        const http = new http_client_lib_HttpClient(tool_cache_userAgent, [], {
+        const http = new lib_HttpClient(tool_cache_userAgent, [], {
             allowRetries: false
         });
         if (auth) {
@@ -66499,6 +68315,324 @@ function parseModuleName(moduleName) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/federation.ts
+// Copyright 2024-2025 Buf Technologies, Inc.
+// Copyright 2026 StepSecurity
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// RFC 8693 grant and token-type URNs for the workload identity exchange.
+const grantTypeTokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange";
+const subjectTokenTypeIDToken = "urn:ietf:params:oauth:token-type:id_token";
+// Timeout for a single exchange request. The registry verifies a JWT signature
+// and may fetch the issuer's keys on a cold cache, so this is generous.
+const requestTimeoutMs = 15_000;
+// Retry only errors that a later attempt could plausibly resolve. Trust
+// failures are never retried: the answer will not change, and hammering the
+// endpoint on a misconfigured credential only slows the failure down.
+const maxAttempts = 3;
+const retryBaseDelayMs = 1_000;
+// GitHub OIDC token claims that are safe to log at debug level. They are what
+// a trust credential's conditions are matched against, and every value is
+// already visible in the run's github context.
+const loggedIDTokenClaims = [
+    "iss",
+    "sub",
+    "aud",
+    "jti",
+    "iat",
+    "exp",
+    "repository",
+    "repository_owner",
+    "repository_id",
+    "ref",
+    "ref_type",
+    "sha",
+    "workflow",
+    "workflow_ref",
+    "job_workflow_ref",
+    "event_name",
+    "actor",
+    "environment",
+    "runner_environment",
+];
+// Response headers logged so a failed exchange can be correlated with the
+// registry's own logs.
+const loggedResponseHeaders = ["x-request-id", "traceparent"];
+// Fields of a successful token response that are safe to log.
+const loggedTokenResponseFields = [
+    "token_type",
+    "issued_token_type",
+    "expires_in",
+];
+// TokenExchangeError carries the OAuth error code so callers can map a failure
+// to advice without re-parsing the response body.
+class TokenExchangeError extends Error {
+    code;
+    retryable;
+    constructor(message, code, retryable) {
+        super(message);
+        this.name = "TokenExchangeError";
+        this.code = code;
+        this.retryable = retryable;
+    }
+}
+// normalizeDomain strips anything a workflow may have pasted around the bare
+// hostname. A scheme left in place would otherwise build the audience
+// "https://https://host", which the registry rejects for reasons the message
+// does not make obvious.
+function normalizeDomain(domain) {
+    return domain
+        .trim()
+        .replace(/^https?:\/\//, "")
+        .replace(/\/+$/, "");
+}
+// exchangeIDTokenForBufToken mints a short-lived registry token from the
+// workload's own GitHub identity, so no long-lived API token has to be stored
+// as a repository secret.
+//
+// The GitHub OIDC token and the minted registry token are both registered as
+// secrets before either is returned, so neither can reach the log even if a
+// later step or a thrown error would otherwise print it.
+async function exchangeIDTokenForBufToken(options) {
+    const { domain, username } = options;
+    // The registry expects its own hostname, the same value its OAuth redirect
+    // URLs are built from, so there is nothing to configure here.
+    const host = normalizeDomain(domain);
+    const audience = `https://${host}`;
+    const endpoint = `https://${host}/oauth2/token`;
+    if (host != domain) {
+        core_debug(`Normalized domain "${domain}" to "${host}"`);
+    }
+    // The request URL is set only when the job has id-token: write, which
+    // separates a missing permission from a GitHub outage.
+    core_debug(`Requesting GitHub OIDC token for audience ${audience} ` +
+        `(ACTIONS_ID_TOKEN_REQUEST_URL is ${process.env.ACTIONS_ID_TOKEN_REQUEST_URL ? "set" : "not set"})`);
+    let idToken;
+    try {
+        idToken = await getIDToken(audience);
+    }
+    catch (error) {
+        throw new Error(`Failed to request a GitHub OIDC token for audience ${audience}. ` +
+            `The job must grant "permissions: id-token: write". ` +
+            `Underlying error: ${errorMessage(error)}`, { cause: error });
+    }
+    if (idToken == "") {
+        throw new Error(`GitHub returned an empty OIDC token for audience ${audience}. ` +
+            `The job must grant "permissions: id-token: write".`);
+    }
+    setSecret(idToken);
+    if (isDebug()) {
+        core_debug(`GitHub OIDC token claims: ${JSON.stringify(describeIDToken(idToken))}`);
+    }
+    const body = new URLSearchParams({
+        grant_type: grantTypeTokenExchange,
+        subject_token: idToken,
+        subject_token_type: subjectTokenTypeIDToken,
+        account: username,
+    });
+    let lastError;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const startedAt = Date.now();
+        try {
+            const token = await postTokenExchange(endpoint, body);
+            // Mask before returning: every caller path that could log the token
+            // runs after this point.
+            setSecret(token);
+            core_debug(`Token exchange succeeded in ${Date.now() - startedAt} ms`);
+            return token;
+        }
+        catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            const retryable = !(lastError instanceof TokenExchangeError) || lastError.retryable;
+            core_debug(`Token exchange attempt ${attempt} of ${maxAttempts} failed after ` +
+                `${Date.now() - startedAt} ms: ${lastError.message}`);
+            if (!retryable || attempt === maxAttempts) {
+                break;
+            }
+            await sleep(retryBaseDelayMs * attempt);
+        }
+    }
+    throw describeFailure(lastError, host, username);
+}
+// Timeout for the revocation request. It is best-effort cleanup in the post
+// step, so it fails fast rather than holding the job open.
+const revokeTimeoutMs = 10_000;
+// revokeBufToken retires a token minted by exchangeIDTokenForBufToken through
+// RFC 7009 revocation, so it stops working when the job ends instead of when
+// it expires. The registry only revokes federated tokens this way; a static
+// token is refused with unsupported_token_type.
+async function revokeBufToken(options) {
+    const { domain, token } = options;
+    const host = normalizeDomain(domain);
+    const endpoint = `https://${host}/oauth2/revoke`;
+    const body = new URLSearchParams({
+        token,
+        token_type_hint: "access_token",
+    });
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+        },
+        body: body.toString(),
+        signal: AbortSignal.timeout(revokeTimeoutMs),
+    });
+    const text = await response.text();
+    core.debug(`Token revocation response from ${endpoint}: HTTP ${response.status}` +
+        describeHeaders(response.headers));
+    if (response.ok) {
+        return;
+    }
+    // A registry that predates the endpoint answers 404 with an HTML page, not
+    // an OAuth error, so it is named before the error body is parsed.
+    if (response.status == 404) {
+        throw new Error(`${host} does not support token revocation; the token expires on its own`);
+    }
+    const { error, description } = parseOAuthError(text);
+    throw new Error(description == "" ? error : `${error}: ${description}`);
+}
+// postTokenExchange performs one exchange request and returns the access token.
+async function postTokenExchange(endpoint, body) {
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+        },
+        body: body.toString(),
+        signal: AbortSignal.timeout(requestTimeoutMs),
+    });
+    const text = await response.text();
+    core_debug(`Token exchange response from ${endpoint}: HTTP ${response.status}` +
+        describeHeaders(response.headers));
+    if (!response.ok) {
+        const { error, description } = parseOAuthError(text);
+        throw new TokenExchangeError(description == "" ? error : `${error}: ${description}`, error, 
+        // 5xx is the registry failing, not the credential being wrong. So is
+        // slow_down, which asks for exactly one thing: come back later.
+        response.status >= 500 || error == "slow_down");
+    }
+    let payload;
+    try {
+        payload = JSON.parse(text);
+    }
+    catch {
+        throw new TokenExchangeError("the registry returned a non-JSON response", "invalid_response", true);
+    }
+    core_debug(`Token exchange response fields: ${JSON.stringify(pickFields(payload, loggedTokenResponseFields))}`);
+    const accessToken = payload.access_token;
+    if (typeof accessToken !== "string" || accessToken == "") {
+        throw new TokenExchangeError("the registry returned no access_token", "invalid_response", false);
+    }
+    return accessToken;
+}
+// describeIDToken returns the loggable claims of the token, never the token
+// or any of its segments: the runner masks the whole string, not substrings.
+function describeIDToken(idToken) {
+    const segments = idToken.split(".");
+    if (segments.length != 3) {
+        return { error: "not a JWT" };
+    }
+    let payload;
+    try {
+        payload = JSON.parse(Buffer.from(segments[1], "base64url").toString());
+    }
+    catch {
+        return { error: "payload is not JSON" };
+    }
+    const claims = pickFields(payload, loggedIDTokenClaims);
+    if (typeof claims.exp == "number") {
+        claims.expires_in_seconds = claims.exp - Math.floor(Date.now() / 1000);
+    }
+    return claims;
+}
+// pickFields copies the named fields out of a decoded JSON object.
+function pickFields(payload, names) {
+    const picked = {};
+    if (typeof payload != "object" || payload == null) {
+        return picked;
+    }
+    for (const name of names) {
+        if (name in payload) {
+            picked[name] = payload[name];
+        }
+    }
+    return picked;
+}
+// describeHeaders formats the correlation headers present on a response.
+function describeHeaders(headers) {
+    const parts = [];
+    for (const name of loggedResponseHeaders) {
+        const value = headers.get(name);
+        if (value != null) {
+            parts.push(`${name}=${value}`);
+        }
+    }
+    return parts.length == 0 ? "" : ` (${parts.join(", ")})`;
+}
+// parseOAuthError pulls the RFC 6749 error envelope out of a response body,
+// falling back to a generic code when the body is not the expected shape.
+function parseOAuthError(text) {
+    try {
+        const payload = JSON.parse(text);
+        return {
+            error: typeof payload.error === "string" ? payload.error : "unknown",
+            description: typeof payload.error_description === "string"
+                ? payload.error_description
+                : "",
+        };
+    }
+    catch {
+        return { error: "unknown", description: text.slice(0, 200) };
+    }
+}
+// describeFailure turns an exchange failure into advice.
+//
+// The registry answers every trust failure with the same opaque invalid_grant,
+// deliberately, so that a caller cannot probe which accounts or conditions
+// exist. That means this cannot say which check failed, only what to go and
+// look at.
+function describeFailure(error, domain, username) {
+    if (!(error instanceof TokenExchangeError)) {
+        return new Error(`Failed to exchange the GitHub OIDC token with ${domain}: ${errorMessage(error)}`);
+    }
+    switch (error.code) {
+        case "unsupported_grant_type":
+            return new Error(`${domain} does not accept workload identity federation. ` +
+                `Either the registry does not have it enabled, or it is an older version. ` +
+                `Use the "token" input instead.`);
+        case "invalid_grant":
+            return new Error(`${domain} refused to authenticate this workflow as bot user ${username}. ` +
+                `The registry does not report which check failed, by design. Verify that ` +
+                `the username is right and names an active bot user, that it has a trust ` +
+                `credential for GitHub Actions, and that the credential's claim ` +
+                `conditions match this repository, ref, and workflow exactly. ` +
+                `Enable step debug logging to see the claims GitHub put in the token.`);
+        case "invalid_request":
+            return new Error(`${domain} rejected the token exchange request as malformed: ${error.message}`);
+        default:
+            return new Error(`Failed to exchange the GitHub OIDC token with ${domain}: ${error.message}`);
+    }
+}
+function errorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 ;// CONCATENATED MODULE: ./src/main.ts
 // Copyright 2024-2025 Buf Technologies, Inc.
 // Copyright 2026 StepSecurity
@@ -66514,6 +68648,7 @@ function parseModuleName(moduleName) {
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 
 
 
@@ -66594,7 +68729,7 @@ async function main() {
     setOutput(Outputs.BufVersion, bufVersion);
     setOutput(Outputs.BufPath, bufPath);
     saveState(Outputs.BufPath, bufPath);
-    await login(bufPath, inputs);
+    await authenticate(bufPath, inputs);
     if (inputs.setup_only) {
         info("Setup only, skipping steps");
         return;
@@ -66694,6 +68829,30 @@ async function runWorkflow(bufPath, inputs, moduleNames) {
     steps.archive = await archive(inputs, moduleNames);
     return steps;
 }
+// authenticate resolves the token for the rest of the run. Mutates
+// inputs.token so every later step, including run(), uses the same credential.
+async function authenticate(bufPath, inputs) {
+    if (inputs.token != "" && inputs.bot_username != "") {
+        // Picking one silently would leave the workflow author believing they
+        // authenticate by federation while a stored secret is what grants access.
+        throw new Error(`Both a static token (the "token" input or BUF_TOKEN) and ` +
+            `"bot_username" are set. Set only one: remove the static token to ` +
+            `authenticate as bot user ${inputs.bot_username} with workload ` +
+            `identity federation, or remove "bot_username" to keep using the ` +
+            `stored token.`);
+    }
+    if (inputs.token == "" && inputs.bot_username != "") {
+        info(`Authenticating to ${inputs.domain} as bot user ${inputs.bot_username} using workload identity federation`);
+        inputs.token = await exchangeIDTokenForBufToken({
+            domain: inputs.domain,
+            username: inputs.bot_username,
+        });
+        setOutput(Outputs.Token, inputs.token);
+        // The post step revokes it, so it stops working when the job does.
+        saveState(Outputs.Token, inputs.token);
+    }
+    await login(bufPath, inputs);
+}
 // login logs in to the Buf registry, storing credentials.
 async function login(bufPath, inputs) {
     const { token, domain } = inputs;
@@ -66721,7 +68880,7 @@ async function build(bufPath, inputs) {
     if (inputs.exclude_imports) {
         args.push("--exclude-imports");
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // lint runs the "buf lint" step.
 async function lint(bufPath, inputs) {
@@ -66739,7 +68898,7 @@ async function lint(bufPath, inputs) {
     for (const path of inputs.exclude_paths) {
         args.push("--exclude-path", path);
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // format runs the "buf format" step.
 async function format(bufPath, inputs) {
@@ -66763,7 +68922,7 @@ async function format(bufPath, inputs) {
     for (const path of inputs.exclude_paths) {
         args.push("--exclude-path", path);
     }
-    const result = await run(bufPath, args);
+    const result = await run(bufPath, args, inputs);
     if (result.status == Status.Failed && result.stdout.startsWith("diff")) {
         // If the format step fails, parse the diff and write github annotations.
         const diff = parse_diff_default()(result.stdout);
@@ -66804,7 +68963,7 @@ async function breaking(bufPath, inputs, moduleNames) {
     if (inputs.exclude_imports) {
         args.push("--exclude-imports");
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // push runs the "buf push" step.
 async function push(bufPath, inputs, moduleNames) {
@@ -66838,7 +68997,7 @@ async function push(bufPath, inputs, moduleNames) {
     if (inputs.input) {
         args.push(inputs.input);
     }
-    return run(bufPath, args);
+    return run(bufPath, args, inputs);
 }
 // archive runs the "buf archive" step.
 async function archive(inputs, moduleNames) {
@@ -66910,25 +69069,26 @@ var Status;
     Status[Status["Skipped"] = 3] = "Skipped";
 })(Status || (Status = {}));
 // run executes the buf command with the given arguments.
-async function run(bufPath, args) {
+async function run(bufPath, args, inputs) {
     if (isDebug()) {
         args = ["--debug", ...args];
     }
-    const bufToken = getInput("token") || inputs_getEnv("BUF_TOKEN");
     const httpsUsername = inputs_getEnv("BUF_INPUT_HTTPS_USERNAME") || getInput("github_actor");
     const httpsPassword = inputs_getEnv("BUF_INPUT_HTTPS_PASSWORD") || getInput("github_token");
     // Mask sensitive values sourced from env vars so they are redacted in logs
     // even when not passed via secrets.*.
-    if (bufToken)
-        core_setSecret(bufToken);
+    if (inputs.token)
+        setSecret(inputs.token);
     if (httpsPassword)
-        core_setSecret(httpsPassword);
+        setSecret(httpsPassword);
     return getExecOutput(bufPath, args, {
         ignoreReturnCode: true,
         env: {
             ...process.env,
+            // inputs.token is the "token" input, BUF_TOKEN from the environment,
+            // or the token minted by workload identity federation.
             // See: https://buf.build/docs/bsr/authentication
-            BUF_TOKEN: bufToken,
+            BUF_TOKEN: inputs.token,
             // See: https://buf.build/docs/reference/inputs#https
             BUF_INPUT_HTTPS_USERNAME: httpsUsername,
             BUF_INPUT_HTTPS_PASSWORD: httpsPassword,
